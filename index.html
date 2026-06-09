@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Metas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===== LOGIN ===== -->
+  <div id="screen-login" class="screen active">
+    <div class="auth-card">
+      <div class="auth-logo-area">
+        <div class="logo-icon">🎯</div>
+        <div>
+          <div class="auth-title">Metas</div>
+          <div class="auth-sub">Acesso ao Sistema</div>
+        </div>
+      </div>
+      <div class="auth-divider"></div>
+      <div class="field-group">
+        <div class="field-label">E-mail</div>
+        <input id="login-email" class="auth-input" type="email" placeholder="seu@email.com" />
+      </div>
+      <div class="field-group">
+        <div class="field-label">
+          Senha
+          <a onclick="showScreen('screen-forgot')">Esqueceu a senha?</a>
+        </div>
+        <input id="login-password" class="auth-input" type="password" placeholder="••••••••" />
+      </div>
+      <button class="btn-primary" onclick="doLogin()">INICIAR SESSÃO →</button>
+      <div class="auth-footer">Novo por aqui? <a onclick="showScreen('screen-register')">Criar usuário</a></div>
+    </div>
+  </div>
+
+  <!-- ===== REGISTER ===== -->
+  <div id="screen-register" class="screen">
+    <div class="auth-card">
+      <div class="back-link" onclick="showScreen('screen-login')">← Voltar</div>
+      <div class="icon-header">
+        <div class="icon-square">👤</div>
+        <div class="icon-header-text">
+          <div class="icon-header-title">Criar Usuário</div>
+          <div class="icon-header-sub">Novo Registro</div>
+        </div>
+      </div>
+      <div class="auth-divider"></div>
+      <div class="field-group">
+        <div class="field-label">Nome completo</div>
+        <input id="reg-name" class="auth-input" type="text" placeholder="Seu nome" />
+      </div>
+      <div class="field-group">
+        <div class="field-label">E-mail</div>
+        <input id="reg-email" class="auth-input" type="email" placeholder="seu@email.com" />
+      </div>
+      <div class="field-group">
+        <div class="field-label">Senha</div>
+        <input id="reg-password" class="auth-input" type="password" placeholder="Mínimo 8 caracteres" />
+      </div>
+      <button class="btn-primary" onclick="doRegister()">REGISTRAR</button>
+      <div class="auth-footer">Já possui acesso? <a onclick="showScreen('screen-login')">Fazer login</a></div>
+    </div>
+  </div>
+
+  <!-- ===== FORGOT PASSWORD ===== -->
+  <div id="screen-forgot" class="screen">
+    <div class="auth-card">
+      <div class="back-link" onclick="showScreen('screen-login')">← Voltar para o login</div>
+      <div class="icon-header">
+        <div class="icon-square">🔑</div>
+        <div class="icon-header-text">
+          <div class="icon-header-title">Recuperar Acesso</div>
+          <div class="icon-header-sub">Redefinir Senha</div>
+        </div>
+      </div>
+      <div class="auth-divider"></div>
+      <div class="field-group">
+        <div class="field-label">E-mail cadastrado</div>
+        <input id="forgot-email" class="auth-input" type="email" placeholder="seu@email.com" />
+      </div>
+      <button class="btn-primary" onclick="doForgot()">ENVIAR LINK DE RECUPERAÇÃO</button>
+    </div>
+  </div>
+
+  <!-- ===== DASHBOARD ===== -->
+  <div id="screen-dashboard" class="screen">
+    <div class="topbar">
+      <div class="topbar-brand">
+        <div class="topbar-icon">⚡</div>
+        METAS
+      </div>
+      <button class="btn-logout" onclick="doLogout()" title="Sair">⇥</button>
+    </div>
+
+    <div class="dashboard-content">
+      <div class="greeting">
+        <h1>Olá, <span id="user-name-display">Visitante</span></h1>
+        <div class="greeting-sub" id="meta-count-display">STATUS: 0 METAS ATIVAS NO SISTEMA</div>
+      </div>
+
+      <button class="btn-new-goal" onclick="openModalNew()">
+        <span style="font-size:18px">＋</span> INICIALIZAR NOVA META
+      </button>
+
+      <div class="section-header">
+        <div class="section-title"><span>📈</span> RADAR DE OBJETIVOS</div>
+        <div class="carousel-nav">
+          <button class="carousel-btn" onclick="carouselPrev()">‹</button>
+          <button class="carousel-btn" onclick="carouselNext()">›</button>
+        </div>
+      </div>
+
+      <div id="priority-order" class="priority-order"></div>
+
+      <div class="goals-wrapper">
+        <div id="goals-grid" class="goals-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL NOVA META ===== -->
+  <div id="modal-new" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-logo">🎯</div>
+          <div class="modal-title">Nova Interface de Meta</div>
+        </div>
+        <button class="btn-close" onclick="closeModal('modal-new')">✕</button>
+      </div>
+
+      <div class="modal-field">
+        <label class="modal-label">Identificação (Título)</label>
+        <input id="new-title" class="modal-input" placeholder="Ex: Setup PC Gamer" />
+      </div>
+
+      <!-- Image input melhorado -->
+      <div class="modal-field">
+        <label class="modal-label">Imagem da Meta</label>
+        <div class="img-input-tabs">
+          <button class="img-tab active" onclick="switchImgTab('new','url')">🔗 URL</button>
+          <button class="img-tab" onclick="switchImgTab('new','upload')">📁 Upload</button>
+          <button class="img-tab" onclick="switchImgTab('new','search')">🔍 Buscar</button>
+        </div>
+        <div id="new-img-url-panel" class="img-panel active">
+          <input id="new-img-url" class="modal-input" placeholder="https://images.unsplash.com/..." oninput="previewImg('new')" />
+        </div>
+        <div id="new-img-upload-panel" class="img-panel">
+          <label class="upload-area" id="new-upload-area">
+            <input type="file" accept="image/*" onchange="handleUpload(this,'new')" hidden />
+            <span class="upload-icon">📂</span>
+            <span class="upload-text">Clique ou arraste uma imagem</span>
+          </label>
+        </div>
+        <div id="new-img-search-panel" class="img-panel">
+          <div class="img-search-row">
+            <input id="new-img-search-input" class="modal-input" placeholder="Ex: mountain bike, setup gamer..." />
+            <button class="btn-search-img" onclick="searchUnsplash('new')">Buscar</button>
+          </div>
+          <div id="new-img-results" class="img-results"></div>
+        </div>
+        <div id="new-img-preview" class="img-preview-box" style="display:none">
+          <img id="new-img-preview-img" src="" alt="Preview" />
+          <button class="img-preview-remove" onclick="removeImgPreview('new')">✕</button>
+        </div>
+        <input type="hidden" id="new-img-final" />
+      </div>
+
+      <div class="modal-row">
+        <div class="modal-field">
+          <label class="modal-label">Valor Total</label>
+          <input id="new-total" class="modal-input" type="number" placeholder="Ex: 12000" />
+        </div>
+        <div class="modal-field">
+          <label class="modal-label">Valor Guardado (Atual)</label>
+          <input id="new-saved" class="modal-input" type="number" placeholder="Ex: 1500" />
+        </div>
+      </div>
+      <div class="modal-row">
+        <div class="modal-field">
+          <label class="modal-label">Aporte Mensal</label>
+          <input id="new-monthly" class="modal-input" type="number" placeholder="Ex: 800" />
+        </div>
+        <div class="modal-field">
+          <label class="modal-label">Prioridade (1 = Maior)</label>
+          <input id="new-prio" class="modal-input" type="number" placeholder="1" value="1" min="1" />
+        </div>
+      </div>
+
+      <div class="modal-field">
+        <div class="specs-header">
+          <label class="modal-label" style="margin:0">Especificações Extras</label>
+          <button class="btn-add-spec" onclick="addSpec('new-specs')">+ Adicionar</button>
+        </div>
+        <div id="new-specs" class="specs-list">
+          <div class="spec-empty">Nenhuma especificação adicionada.</div>
+        </div>
+      </div>
+
+      <button class="btn-submit" onclick="compileNewGoal()">COMPILAR NOVA META</button>
+    </div>
+  </div>
+
+  <!-- ===== MODAL EDITAR META ===== -->
+  <div id="modal-edit" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-logo">🎯</div>
+          <div class="modal-title">Editar Meta</div>
+        </div>
+        <button class="btn-close" onclick="closeModal('modal-edit')">✕</button>
+      </div>
+
+      <input type="hidden" id="edit-id" />
+      <div class="modal-field">
+        <label class="modal-label">Identificação (Título)</label>
+        <input id="edit-title" class="modal-input" />
+      </div>
+
+      <!-- Image input melhorado editar -->
+      <div class="modal-field">
+        <label class="modal-label">Imagem da Meta</label>
+        <div class="img-input-tabs">
+          <button class="img-tab active" onclick="switchImgTab('edit','url')">🔗 URL</button>
+          <button class="img-tab" onclick="switchImgTab('edit','upload')">📁 Upload</button>
+          <button class="img-tab" onclick="switchImgTab('edit','search')">🔍 Buscar</button>
+        </div>
+        <div id="edit-img-url-panel" class="img-panel active">
+          <input id="edit-img-url" class="modal-input" placeholder="https://..." oninput="previewImg('edit')" />
+        </div>
+        <div id="edit-img-upload-panel" class="img-panel">
+          <label class="upload-area" id="edit-upload-area">
+            <input type="file" accept="image/*" onchange="handleUpload(this,'edit')" hidden />
+            <span class="upload-icon">📂</span>
+            <span class="upload-text">Clique ou arraste uma imagem</span>
+          </label>
+        </div>
+        <div id="edit-img-search-panel" class="img-panel">
+          <div class="img-search-row">
+            <input id="edit-img-search-input" class="modal-input" placeholder="Ex: mountain bike, setup gamer..." />
+            <button class="btn-search-img" onclick="searchUnsplash('edit')">Buscar</button>
+          </div>
+          <div id="edit-img-results" class="img-results"></div>
+        </div>
+        <div id="edit-img-preview" class="img-preview-box" style="display:none">
+          <img id="edit-img-preview-img" src="" alt="Preview" />
+          <button class="img-preview-remove" onclick="removeImgPreview('edit')">✕</button>
+        </div>
+        <input type="hidden" id="edit-img-final" />
+      </div>
+
+      <div class="modal-row">
+        <div class="modal-field">
+          <label class="modal-label">Valor Total</label>
+          <input id="edit-total" class="modal-input" type="number" />
+        </div>
+        <div class="modal-field">
+          <label class="modal-label">Valor Guardado (Atual)</label>
+          <input id="edit-saved" class="modal-input" type="number" />
+        </div>
+      </div>
+      <div class="modal-row">
+        <div class="modal-field">
+          <label class="modal-label">Aporte Mensal</label>
+          <input id="edit-monthly" class="modal-input" type="number" />
+        </div>
+        <div class="modal-field">
+          <label class="modal-label">Prioridade (1 = Maior)</label>
+          <input id="edit-prio" class="modal-input" type="number" min="1" />
+        </div>
+      </div>
+
+      <div class="modal-field">
+        <div class="specs-header">
+          <label class="modal-label" style="margin:0">Especificações Extras</label>
+          <button class="btn-add-spec" onclick="addSpec('edit-specs')">+ Adicionar</button>
+        </div>
+        <div id="edit-specs" class="specs-list"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-danger-icon" onclick="deleteGoal()" title="Excluir meta">🗑</button>
+        <button class="btn-submit" onclick="updateGoal()">ATUALIZAR META</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL DETALHES ===== -->
+  <div id="modal-detail" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-logo">📊</div>
+          <div class="modal-title">Detalhes do Projeto</div>
+        </div>
+        <button class="btn-close" onclick="closeModal('modal-detail')">✕</button>
+      </div>
+      <div id="detail-content"></div>
+    </div>
+  </div>
+
+  <!-- ===== LOADING OVERLAY ===== -->
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <!-- ===== TOAST ===== -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Firebase SDKs (modular via CDN compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
