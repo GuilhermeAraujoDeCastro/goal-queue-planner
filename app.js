@@ -167,6 +167,30 @@ function loadDashboard() {
 // =============================================
 //  RENDER GOALS
 // =============================================
+// =============================================
+//  SEQUENTIAL START DATE CALCULATOR
+// =============================================
+function calcGoalStartDate(goalPrio, sortedGoals) {
+  // Find prio-1 goal's start month
+  const main = sortedGoals.find(g => g.prio === 1);
+  if (!main || !main.startMonth) return null;
+
+  // Parse startMonth "YYYY-MM"
+  const [yr, mo] = main.startMonth.split('-').map(Number);
+  if (!yr || !mo) return null;
+
+  let cursor = new Date(yr, mo - 1, 1); // first day of that month
+
+  for (const g of sortedGoals) {
+    if (g.prio === goalPrio) return cursor;
+    // How many months does this goal take from its startDate?
+    const rem = g.total - g.saved;
+    const months = g.monthly > 0 ? Math.ceil(rem / g.monthly) : 0;
+    cursor = new Date(cursor.getFullYear(), cursor.getMonth() + months, 1);
+  }
+  return cursor;
+}
+
 function renderGoals() {
   const sorted = [...goals].sort((a, b) => a.prio - b.prio);
   const count  = sorted.length;
@@ -193,16 +217,27 @@ function renderGoals() {
 
   grid.innerHTML = sorted.map(g => {
     const pct        = Math.min(100, Math.round((g.saved / g.total) * 100));
-    const remaining  = g.total - g.saved;
+    const remaining  = Math.max(0, g.total - g.saved);
     const months     = g.monthly > 0 ? Math.ceil(remaining / g.monthly) : null;
     const monthsText = months !== null ? months + ' meses' : '∞';
+
+    // Start date for this goal in the sequence
+    const startDate = calcGoalStartDate(g.prio, sorted);
+    let startText = '';
+    if (g.prio === 1 && g.startMonth) {
+      const [yr, mo] = g.startMonth.split('-').map(Number);
+      const d = new Date(yr, mo - 1, 1);
+      startText = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    } else if (startDate) {
+      startText = startDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    }
 
     const imgContent = g.img
       ? `<img src="${g.img}" alt="${g.title}" onload="this.classList.add('loaded')" onerror="this.style.display='none'">`
       : `<div class="goal-img-placeholder">🎯</div>`;
 
     return `
-      <div class="goal-card">
+      <div class="goal-card" id="card-${g.id}">
         <div class="goal-img">
           ${imgContent}
           <div class="goal-img-overlay"></div>
@@ -211,6 +246,7 @@ function renderGoals() {
         </div>
         <div class="goal-body">
           <div class="goal-name">${g.title}</div>
+          ${startText ? `<div class="goal-start-badge">📅 Início: ${startText}</div>` : ''}
           <div class="sync-label">SINCRONIZAÇÃO <span class="sync-pct">${pct}%</span></div>
           <div class="progress-track">
             <div class="progress-bar" style="width:${pct}%"></div>
@@ -230,6 +266,7 @@ function renderGoals() {
             </div>
           </div>
           <button class="btn-details" onclick="openDetail('${g.id}')">VER DETALHES DO PROJETO ↗</button>
+          <button class="btn-deposit" onclick="openDeposit('${g.id}')">💰 ADICIONAR DINHEIRO</button>
         </div>
       </div>`;
   }).join('');
@@ -240,6 +277,67 @@ function renderGoals() {
 
 function fmtR(v) {
   return 'R$ ' + Number(v || 0).toLocaleString('pt-BR');
+}
+
+// =============================================
+//  DEPOSIT MONEY
+// =============================================
+function openDeposit(id) {
+  const g = goals.find(x => x.id === id);
+  if (!g) return;
+
+  const amount = prompt(`💰 Adicionar dinheiro à meta "${g.title}"\n\nValor atual: ${fmtR(g.saved)}\nMeta total: ${fmtR(g.total)}\n\nDigite o valor a adicionar:`);
+  if (amount === null) return; // cancelled
+
+  const val = parseFloat(amount.replace(',', '.'));
+  if (isNaN(val) || val <= 0) { showToast('Valor inválido', 'error'); return; }
+
+  const newSaved = Math.min(g.total, g.saved + val);
+  const isComplete = newSaved >= g.total;
+
+  showLoading();
+  db.collection('users').doc(currentUser.uid).collection('goals').doc(id)
+    .update({ saved: newSaved })
+    .then(() => {
+      hideLoading();
+      if (isComplete) {
+        celebrateGoal(id, g.title);
+      } else {
+        showToast(`+${fmtR(val)} adicionado! Total: ${fmtR(newSaved)}`, 'success');
+      }
+    })
+    .catch(err => { hideLoading(); showToast('Erro: ' + err.message, 'error'); });
+}
+
+function celebrateGoal(id, title) {
+  // Show celebration overlay then delete
+  const overlay = document.createElement('div');
+  overlay.className = 'celebrate-overlay';
+  overlay.innerHTML = `
+    <div class="celebrate-box">
+      <div class="celebrate-emoji">🏆</div>
+      <div class="celebrate-title">META CONCLUÍDA!</div>
+      <div class="celebrate-sub">${title}</div>
+      <div class="celebrate-msg">Parabéns! Você atingiu seu objetivo!</div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  // Animate the card out
+  const card = document.getElementById('card-' + id);
+  if (card) {
+    card.classList.add('goal-card-complete');
+  }
+
+  setTimeout(() => {
+    overlay.classList.add('celebrate-fade-out');
+    setTimeout(() => {
+      overlay.remove();
+      // Delete from Firestore — it will disappear from the grid via the snapshot listener
+      db.collection('users').doc(currentUser.uid).collection('goals').doc(id).delete()
+        .then(() => showToast('Meta "' + title + '" concluída e arquivada! 🎉', 'success'))
+        .catch(err => showToast('Erro ao arquivar: ' + err.message, 'error'));
+    }, 500);
+  }, 3000);
 }
 
 // =============================================
@@ -283,7 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function openModalNew() {
   // reset fields
   ['new-title','new-img-url','new-img-search-input','new-img-final',
-   'new-total','new-saved','new-monthly'].forEach(id => {
+   'new-total','new-saved','new-monthly','new-start-month'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -292,25 +390,39 @@ function openModalNew() {
     '<div class="spec-empty">Nenhuma especificação adicionada.</div>';
   document.getElementById('new-img-preview').style.display = 'none';
   document.getElementById('new-img-results').innerHTML = '';
+
+  // Show start month field only for priority 1 (main goal)
+  updateStartMonthVisibility('new');
+
   switchImgTab('new', 'url');
   openModal('modal-new');
 }
 
+function updateStartMonthVisibility(prefix) {
+  const prioEl = document.getElementById(`${prefix}-prio`);
+  const smField = document.getElementById(`${prefix}-start-month-field`);
+  if (!prioEl || !smField) return;
+  const prio = parseInt(prioEl.value) || 1;
+  smField.style.display = prio === 1 ? 'block' : 'none';
+}
+
 async function compileNewGoal() {
-  const title   = document.getElementById('new-title').value.trim();
-  const img     = getImgFinal('new');
-  const total   = parseFloat(document.getElementById('new-total').value)   || 0;
-  const saved   = parseFloat(document.getElementById('new-saved').value)   || 0;
-  const monthly = parseFloat(document.getElementById('new-monthly').value) || 0;
-  const prio    = parseInt(document.getElementById('new-prio').value)      || goals.length + 1;
-  const specs   = getSpecs('new-specs');
+  const title      = document.getElementById('new-title').value.trim();
+  const img        = getImgFinal('new');
+  const total      = parseFloat(document.getElementById('new-total').value)   || 0;
+  const saved      = parseFloat(document.getElementById('new-saved').value)   || 0;
+  const monthly    = parseFloat(document.getElementById('new-monthly').value) || 0;
+  const prio       = parseInt(document.getElementById('new-prio').value)      || goals.length + 1;
+  const specs      = getSpecs('new-specs');
+  const smEl       = document.getElementById('new-start-month');
+  const startMonth = smEl ? smEl.value : '';
 
   if (!title || !total) { showToast('Título e valor total são obrigatórios', 'error'); return; }
 
   showLoading();
   try {
     await db.collection('users').doc(currentUser.uid).collection('goals').add({
-      title, img, total, saved, monthly, prio, specs,
+      title, img, total, saved, monthly, prio, specs, startMonth,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     closeModal('modal-new');
@@ -338,6 +450,9 @@ function openModalEdit(id, e) {
   document.getElementById('edit-saved').value    = g.saved   || '';
   document.getElementById('edit-monthly').value  = g.monthly || '';
   document.getElementById('edit-prio').value     = g.prio    || 1;
+  const editSM = document.getElementById('edit-start-month');
+  if (editSM) editSM.value = g.startMonth || '';
+  updateStartMonthVisibility('edit');
 
   // Preview da imagem existente
   const previewBox = document.getElementById('edit-img-preview');
@@ -367,15 +482,17 @@ async function updateGoal() {
   const total   = parseFloat(document.getElementById('edit-total').value)   || 0;
   const saved   = parseFloat(document.getElementById('edit-saved').value)   || 0;
   const monthly = parseFloat(document.getElementById('edit-monthly').value) || 0;
-  const prio    = parseInt(document.getElementById('edit-prio').value)      || 1;
-  const specs   = getSpecs('edit-specs');
+  const prio       = parseInt(document.getElementById('edit-prio').value) || 1;
+  const specs      = getSpecs('edit-specs');
+  const editSM2    = document.getElementById('edit-start-month');
+  const startMonth = editSM2 ? editSM2.value : '';
 
   if (!title || !total) { showToast('Título e valor total são obrigatórios', 'error'); return; }
 
   showLoading();
   try {
     await db.collection('users').doc(currentUser.uid).collection('goals').doc(id).update({
-      title, img, total, saved, monthly, prio, specs
+      title, img, total, saved, monthly, prio, specs, startMonth
     });
     closeModal('modal-edit');
     hideLoading();
@@ -409,13 +526,28 @@ function openDetail(id) {
   const g = goals.find(x => x.id === id);
   if (!g) return;
 
+  const sorted    = [...goals].sort((a, b) => a.prio - b.prio);
   const pct       = Math.min(100, Math.round((g.saved / g.total) * 100));
-  const remaining = g.total - g.saved;
+  const remaining = Math.max(0, g.total - g.saved);
   const months    = g.monthly > 0 ? Math.ceil(remaining / g.monthly) : null;
   const monthsText = months !== null ? months + ' meses' : '—';
 
+  // Sequential start date
+  const startDate = calcGoalStartDate(g.prio, sorted);
+  let startText = '—';
+  if (g.prio === 1 && g.startMonth) {
+    const [yr, mo] = g.startMonth.split('-').map(Number);
+    startText = new Date(yr, mo - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  } else if (startDate) {
+    startText = startDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  }
+
+  // End date = start + months
   let dateText = '—';
-  if (months !== null) {
+  if (months !== null && startDate) {
+    const end = new Date(startDate.getFullYear(), startDate.getMonth() + months, 1);
+    dateText = end.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  } else if (months !== null) {
     const d = new Date();
     d.setMonth(d.getMonth() + months);
     dateText = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
@@ -470,17 +602,27 @@ function openDetail(id) {
         <div class="detail-stat-val highlight">${monthsText}</div>
       </div>
       <div class="detail-stat">
+        <div class="detail-stat-label">Início previsto</div>
+        <div class="detail-stat-val" style="font-size:15px">${startText}</div>
+      </div>
+      <div class="detail-stat">
         <div class="detail-stat-label">Conquista em</div>
-        <div class="detail-stat-val" style="font-size:16px">${dateText}</div>
+        <div class="detail-stat-val" style="font-size:15px">${dateText}</div>
       </div>
     </div>
 
     ${specsHtml}
 
-    <button class="btn-submit" style="margin-top:20px;width:100%"
-      onclick="closeModal('modal-detail');openModalEdit('${g.id}', null)">
-      ✏ EDITAR ESTA META
-    </button>`;
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn-deposit" style="flex:1;border-radius:10px;padding:13px"
+        onclick="closeModal('modal-detail');openDeposit('${g.id}')">
+        💰 ADICIONAR DINHEIRO
+      </button>
+      <button class="btn-submit" style="flex:1"
+        onclick="closeModal('modal-detail');openModalEdit('${g.id}', null)">
+        ✏ EDITAR
+      </button>
+    </div>`;
 
   openModal('modal-detail');
 }

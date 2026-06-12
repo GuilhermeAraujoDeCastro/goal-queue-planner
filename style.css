@@ -744,3 +744,90 @@ html, body {
   .detail-stats       { grid-template-columns: 1fr; }
   .img-results        { grid-template-columns: repeat(2,1fr); }
 }
+
+/* =============================================
+   DEPOSIT BUTTON
+   ============================================= */
+.btn-deposit {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: calc(100% + 36px); margin: 0 -18px;
+  background: transparent; border: none;
+  border-top: 1px solid var(--border);
+  color: var(--success); padding: 13px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 12px; font-weight: 700; letter-spacing: 2px;
+  cursor: pointer; text-transform: uppercase;
+  transition: background .2s, color .2s;
+}
+.btn-deposit:hover {
+  background: rgba(0,229,160,.08);
+  color: #00ffb3;
+}
+
+/* Goal start date badge */
+.goal-start-badge {
+  font-size: 10px; letter-spacing: 1.5px;
+  color: var(--cyan); text-transform: uppercase;
+  font-weight: 600; margin-bottom: 10px;
+  background: rgba(0,200,255,.08);
+  border: 1px solid rgba(0,200,255,.18);
+  border-radius: 5px; padding: 4px 9px;
+  display: inline-block;
+}
+
+/* =============================================
+   CELEBRATION OVERLAY
+   ============================================= */
+.celebrate-overlay {
+  position: fixed; inset: 0; z-index: 999;
+  background: rgba(0,0,0,.85);
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeIn .3s ease;
+}
+.celebrate-overlay.celebrate-fade-out {
+  animation: fadeOut .5s ease forwards;
+}
+@keyframes fadeOut { to { opacity: 0; } }
+
+.celebrate-box {
+  background: var(--card);
+  border: 2px solid var(--success);
+  border-radius: 24px;
+  padding: 50px 60px;
+  text-align: center;
+  box-shadow: 0 0 80px rgba(0,229,160,.3);
+  animation: bounceIn .5s cubic-bezier(.36,.07,.19,.97);
+}
+@keyframes bounceIn {
+  0%   { transform: scale(.5); opacity: 0; }
+  70%  { transform: scale(1.08); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.celebrate-emoji { font-size: 72px; margin-bottom: 16px; }
+.celebrate-title {
+  font-family: 'Rajdhani', sans-serif; font-size: 32px; font-weight: 700;
+  color: var(--success); letter-spacing: 3px; margin-bottom: 8px;
+}
+.celebrate-sub {
+  font-family: 'Rajdhani', sans-serif; font-size: 22px; font-weight: 600;
+  color: var(--text); margin-bottom: 12px;
+}
+.celebrate-msg {
+  font-size: 14px; color: var(--text2);
+}
+
+/* Goal card complete animation */
+.goal-card-complete {
+  animation: cardComplete .6s ease forwards;
+}
+@keyframes cardComplete {
+  0%   { transform: scale(1); opacity: 1; }
+  50%  { transform: scale(1.04); border-color: var(--success); }
+  100% { transform: scale(.9); opacity: 0; }
+}
+
+/* Input type month styling */
+input[type="month"].modal-input {
+  color-scheme: dark;
+}

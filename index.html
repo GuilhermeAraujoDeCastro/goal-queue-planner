@@ -187,7 +187,16 @@
         </div>
         <div class="modal-field">
           <label class="modal-label">Prioridade (1 = Maior)</label>
-          <input id="new-prio" class="modal-input" type="number" placeholder="1" value="1" min="1" />
+          <input id="new-prio" class="modal-input" type="number" placeholder="1" value="1" min="1"
+            oninput="updateStartMonthVisibility('new')" />
+        </div>
+      </div>
+
+      <div class="modal-field" id="new-start-month-field" style="display:block">
+        <label class="modal-label">📅 Mês de Início (Meta Principal)</label>
+        <input id="new-start-month" class="modal-input" type="month" />
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">
+          As demais metas calcularão o início automaticamente após esta.
         </div>
       </div>
 
@@ -271,7 +280,16 @@
         </div>
         <div class="modal-field">
           <label class="modal-label">Prioridade (1 = Maior)</label>
-          <input id="edit-prio" class="modal-input" type="number" min="1" />
+          <input id="edit-prio" class="modal-input" type="number" min="1"
+            oninput="updateStartMonthVisibility('edit')" />
+        </div>
+      </div>
+
+      <div class="modal-field" id="edit-start-month-field" style="display:none">
+        <label class="modal-label">📅 Mês de Início (Meta Principal)</label>
+        <input id="edit-start-month" class="modal-input" type="month" />
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">
+          As demais metas calcularão o início automaticamente após esta.
         </div>
       </div>
 
