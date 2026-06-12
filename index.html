@@ -6,7 +6,9 @@
   <title>Metas</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body>
 
@@ -138,6 +140,12 @@
         <input id="new-title" class="modal-input" placeholder="Ex: Setup PC Gamer" />
       </div>
 
+      <div class="modal-field">
+        <label class="modal-label">Categoria</label>
+        <input type="hidden" id="new-category" value="outro" />
+        <div id="new-category-picker" class="category-picker"></div>
+      </div>
+
       <!-- Image input melhorado -->
       <div class="modal-field">
         <label class="modal-label">Imagem da Meta</label>
@@ -162,6 +170,7 @@
             <button class="btn-search-img" onclick="searchUnsplash('new')">Buscar</button>
           </div>
           <div id="new-img-results" class="img-results"></div>
+          <a class="unsplash-credit" href="https://unsplash.com/?utm_source=web-metas&utm_medium=referral" target="_blank" rel="noopener">Fotos via Unsplash</a>
         </div>
         <div id="new-img-preview" class="img-preview-box" style="display:none">
           <img id="new-img-preview-img" src="" alt="Preview" />
@@ -231,6 +240,12 @@
         <input id="edit-title" class="modal-input" />
       </div>
 
+      <div class="modal-field">
+        <label class="modal-label">Categoria</label>
+        <input type="hidden" id="edit-category" value="outro" />
+        <div id="edit-category-picker" class="category-picker"></div>
+      </div>
+
       <!-- Image input melhorado editar -->
       <div class="modal-field">
         <label class="modal-label">Imagem da Meta</label>
@@ -255,6 +270,7 @@
             <button class="btn-search-img" onclick="searchUnsplash('edit')">Buscar</button>
           </div>
           <div id="edit-img-results" class="img-results"></div>
+          <a class="unsplash-credit" href="https://unsplash.com/?utm_source=web-metas&utm_medium=referral" target="_blank" rel="noopener">Fotos via Unsplash</a>
         </div>
         <div id="edit-img-preview" class="img-preview-box" style="display:none">
           <img id="edit-img-preview-img" src="" alt="Preview" />
@@ -334,6 +350,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script src="app.js"></script>
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>

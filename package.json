@@ -1,0 +1,16 @@
+{
+  "name": "web-metas",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Metas financeiras com sequenciamento por prioridade, Firebase Auth e Firestore, build empacotado com esbuild e ofuscado com javascript-obfuscator para o deploy na Netlify.",
+  "license": "SEE LICENSE IN LICENSE",
+  "author": "Guilherme Araujo de Castro",
+  "scripts": {
+    "build": "node build.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "javascript-obfuscator": "^4.1.1"
+  }
+}
