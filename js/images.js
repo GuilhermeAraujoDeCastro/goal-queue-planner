@@ -39,33 +39,69 @@ export function previewImg(prefix) {
   }
 }
 
-export function handleUpload(input, prefix) {
+// Redimensiona e recomprime a imagem antes de guardar: ela é salva em
+// base64 dentro do próprio documento da meta no Firestore, que tem limite
+// de 1MB. Um arquivo original de ~1MB (bem dentro do limite de upload
+// antigo de 2MB) já passava desse limite sozinho em base64 (~33% maior),
+// e a meta falhava ao salvar sem nenhuma pista de que o problema era o
+// tamanho da imagem.
+function comprimirImagem(file, maxDimensao = 800, qualidade = 0.75) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = e => { img.src = e.target.result; };
+    reader.onerror = reject;
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > height && width > maxDimensao) { height *= maxDimensao / width; width = maxDimensao; }
+      else if (height > maxDimensao) { width *= maxDimensao / height; height = maxDimensao; }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      canvas.toBlob(blob => {
+        if (!blob) { reject(new Error('Falha ao comprimir imagem')); return; }
+        const outReader = new FileReader();
+        outReader.onload = () => resolve(outReader.result);
+        outReader.onerror = reject;
+        outReader.readAsDataURL(blob);
+      }, 'image/jpeg', qualidade);
+    };
+    img.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+export async function handleUpload(input, prefix) {
   const file = input.files[0];
   if (!file) return;
 
-  if (file.size > 2 * 1024 * 1024) {
-    showToast('Imagem muito grande (máximo 2MB)', 'error');
+  if (file.size > 8 * 1024 * 1024) {
+    showToast('Imagem muito grande (máximo 8MB)', 'error');
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = e => {
-    const dataUrl = e.target.result;
-    const box = document.getElementById(`${prefix}-img-preview`);
-    const img = document.getElementById(`${prefix}-img-preview-img`);
-    const fin = document.getElementById(`${prefix}-img-final`);
+  let dataUrl;
+  try {
+    dataUrl = await comprimirImagem(file);
+  } catch (err) {
+    console.error('Erro ao comprimir imagem:', err);
+    showToast('Não foi possível processar essa imagem. Tente outra.', 'error');
+    return;
+  }
 
-    img.src = dataUrl;
-    box.style.display = 'block';
-    fin.value = dataUrl;
+  const box = document.getElementById(`${prefix}-img-preview`);
+  const img = document.getElementById(`${prefix}-img-preview-img`);
+  const fin = document.getElementById(`${prefix}-img-final`);
 
-    const label = document.getElementById(`${prefix}-upload-area`);
-    if (label) {
-      const span = label.querySelector('.upload-text');
-      if (span) span.textContent = file.name;
-    }
-  };
-  reader.readAsDataURL(file);
+  img.src = dataUrl;
+  box.style.display = 'block';
+  fin.value = dataUrl;
+
+  const label = document.getElementById(`${prefix}-upload-area`);
+  if (label) {
+    const span = label.querySelector('.upload-text');
+    if (span) span.textContent = file.name;
+  }
 }
 
 export async function searchUnsplash(prefix) {

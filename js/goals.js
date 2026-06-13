@@ -173,6 +173,14 @@ function renderGoals() {
 // =============================================
 //  DEPÓSITO
 // =============================================
+// Aceita "1234.56" e também o formato brasileiro "1.234,56": remove os
+// pontos de milhar antes de trocar a vírgula decimal por ponto. Sem isso,
+// "1.234,56" virava "1.234.56" e o parseFloat entendia só "1.234" (R$
+// 1.234,56 salvo silenciosamente como R$ 1,234).
+function parseValorBR(str) {
+  return parseFloat(str.trim().replace(/\./g, '').replace(',', '.'));
+}
+
 function openDeposit(id) {
   const g = state.goals.find(x => x.id === id);
   if (!g) return;
@@ -180,7 +188,7 @@ function openDeposit(id) {
   const amount = prompt(`💰 Adicionar dinheiro à meta "${g.title}"\n\nValor atual: ${fmtR(g.saved)}\nMeta total: ${fmtR(g.total)}\n\nDigite o valor a adicionar:`);
   if (amount === null) return;
 
-  const val = parseFloat(amount.replace(',', '.'));
+  const val = parseValorBR(amount);
   if (isNaN(val) || val <= 0) { showToast('Valor inválido', 'error'); return; }
 
   const newSaved = Math.min(g.total, g.saved + val);
