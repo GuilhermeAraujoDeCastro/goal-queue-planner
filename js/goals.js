@@ -181,19 +181,35 @@ function parseValorBR(str) {
   return parseFloat(str.trim().replace(/\./g, '').replace(',', '.'));
 }
 
+// Adicionar dinheiro usava prompt() nativo do navegador. Trocado por um
+// modal do proprio app (modal-deposit) porque a caixinha nativa nao
+// combina com o visual do site e, em navegadores/automacoes que bloqueiam
+// dialogs nativos, travava a tela inteira sem dar nenhum feedback.
 function openDeposit(id) {
   const g = state.goals.find(x => x.id === id);
   if (!g) return;
 
-  const amount = prompt(`💰 Adicionar dinheiro à meta "${g.title}"\n\nValor atual: ${fmtR(g.saved)}\nMeta total: ${fmtR(g.total)}\n\nDigite o valor a adicionar:`);
-  if (amount === null) return;
+  document.getElementById('deposit-id').value = id;
+  document.getElementById('deposit-info').innerHTML =
+    `<strong>${g.title}</strong><br>Valor atual: ${fmtR(g.saved)} · Meta total: ${fmtR(g.total)}`;
+  const input = document.getElementById('deposit-amount');
+  input.value = '';
+  openModal('modal-deposit');
+  setTimeout(() => input.focus(), 50);
+}
 
-  const val = parseValorBR(amount);
+function confirmDeposit() {
+  const id = document.getElementById('deposit-id').value;
+  const g = state.goals.find(x => x.id === id);
+  if (!g) return;
+
+  const val = parseValorBR(document.getElementById('deposit-amount').value);
   if (isNaN(val) || val <= 0) { showToast('Valor inválido', 'error'); return; }
 
   const newSaved = Math.min(g.total, g.saved + val);
   const isComplete = newSaved >= g.total;
 
+  closeModal('modal-deposit');
   showLoading();
   const goalRef = db.collection('users').doc(state.currentUser.uid).collection('goals').doc(id);
 
@@ -395,9 +411,15 @@ async function updateGoal() {
   }
 }
 
-async function deleteGoal() {
+// Excluir meta usava confirm() nativo do navegador, mesmo motivo do
+// openDeposit acima: trocado pelo modal modal-confirm-delete.
+function deleteGoal() {
+  openModal('modal-confirm-delete');
+}
+
+async function confirmDeleteGoal() {
   const id = document.getElementById('edit-id').value;
-  if (!confirm('Tem certeza que deseja excluir esta meta?')) return;
+  closeModal('modal-confirm-delete');
 
   showLoading();
   try {
@@ -571,8 +593,10 @@ window.compileNewGoal = compileNewGoal;
 window.openModalEdit = openModalEdit;
 window.updateGoal = updateGoal;
 window.deleteGoal = deleteGoal;
+window.confirmDeleteGoal = confirmDeleteGoal;
 window.openDetail = openDetail;
 window.openDeposit = openDeposit;
+window.confirmDeposit = confirmDeposit;
 window.carouselNext = carouselNext;
 window.carouselPrev = carouselPrev;
 window.addSpec = addSpec;

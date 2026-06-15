@@ -338,6 +338,49 @@
     </div>
   </div>
 
+  <!-- ===== MODAL ADICIONAR DINHEIRO ===== -->
+  <div id="modal-deposit" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-logo">💰</div>
+          <div class="modal-title">Adicionar Dinheiro</div>
+        </div>
+        <button class="btn-close" onclick="closeModal('modal-deposit')">✕</button>
+      </div>
+      <input type="hidden" id="deposit-id" />
+      <div id="deposit-info" style="font-size:13px;color:var(--text2);margin-bottom:14px"></div>
+      <div class="modal-field">
+        <label class="modal-label">Valor a adicionar</label>
+        <input id="deposit-amount" class="modal-input" type="text" inputmode="decimal"
+          placeholder="Ex: 150,00" onkeydown="if(event.key==='Enter')confirmDeposit()" />
+      </div>
+      <div class="modal-footer">
+        <button class="btn-submit" onclick="confirmDeposit()">ADICIONAR</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL CONFIRMAR EXCLUSÃO ===== -->
+  <div id="modal-confirm-delete" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-logo">🗑</div>
+          <div class="modal-title">Excluir Meta</div>
+        </div>
+        <button class="btn-close" onclick="closeModal('modal-confirm-delete')">✕</button>
+      </div>
+      <div style="font-size:14px;color:var(--text2);margin-bottom:6px">
+        Tem certeza que deseja excluir esta meta? Essa ação não pode ser desfeita.
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeModal('modal-confirm-delete')">CANCELAR</button>
+        <button class="btn-danger-submit" onclick="confirmDeleteGoal()">EXCLUIR</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== LOADING OVERLAY ===== -->
   <div id="loading-overlay" class="loading-overlay">
     <div class="loading-spinner"></div>

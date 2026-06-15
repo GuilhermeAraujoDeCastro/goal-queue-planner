@@ -556,6 +556,29 @@ html, body {
 }
 .btn-submit:hover { background: var(--blue2); }
 
+.btn-cancel {
+  flex: 1;
+  background: transparent; color: var(--text2); border: 1px solid var(--border2);
+  border-radius: var(--radius2);
+  padding: 13px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px; font-weight: 700; letter-spacing: 2px;
+  cursor: pointer; transition: background .2s;
+}
+.btn-cancel:hover { background: rgba(255,255,255,.05); }
+
+.btn-danger-submit {
+  flex: 1;
+  background: var(--danger); color: white; border: none;
+  border-radius: var(--radius2);
+  padding: 13px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px; font-weight: 700; letter-spacing: 2px;
+  cursor: pointer; transition: opacity .2s, box-shadow .2s;
+  box-shadow: 0 4px 20px rgba(230,57,70,.3);
+}
+.btn-danger-submit:hover { opacity: .88; }
+
 /* =============================================
    IMAGE INPUT — melhorado
    ============================================= */
