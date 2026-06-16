@@ -32,6 +32,22 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// Tema claro/escuro: guarda a escolha e troca o ícone dos botões.
+export function alternarTema() {
+  const escuro = document.documentElement.dataset.theme !== 'dark';
+  document.documentElement.dataset.theme = escuro ? 'dark' : 'light';
+  try { localStorage.setItem('metas-tema', escuro ? 'dark' : 'light'); } catch { /* só não lembra no próximo acesso */ }
+  sincronizarIconeTema();
+}
+
+export function sincronizarIconeTema() {
+  const escuro = document.documentElement.dataset.theme === 'dark';
+  document.querySelectorAll('.theme-toggle').forEach(b => { b.textContent = escuro ? '☀️' : '🌙'; });
+}
+
+document.addEventListener('DOMContentLoaded', sincronizarIconeTema);
+
+window.alternarTema = alternarTema;
 window.showScreen = showScreen;
 window.openModal = openModal;
 window.closeModal = closeModal;

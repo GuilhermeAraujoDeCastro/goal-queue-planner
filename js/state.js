@@ -23,9 +23,8 @@ export function categoryOf(goal) {
   return CATEGORIES[goal && goal.category] || CATEGORIES.outro;
 }
 
-export function fmtR(v) {
-  return 'R$ ' + Number(v || 0).toLocaleString('pt-BR');
-}
+// Formatação fica em planejamento.js (testada); reexportada aqui por compatibilidade.
+export { fmtR } from './planejamento.js';
 
 // Chave do cache local é por usuário, pra não misturar dados se mais de
 // uma conta já usou o mesmo navegador.

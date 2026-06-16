@@ -3,255 +3,279 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Metas</title>
+  <title>Metas · Planeje o que você quer conquistar</title>
+  <meta name="description" content="Organize suas metas financeiras por prioridade e veja quando cada uma fica pronta." />
+  <meta name="theme-color" content="#4f46e5" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+  <script>
+    // Aplica o tema antes da 1a pintura (sem piscar). Sem escolha salva, segue o sistema.
+    (function () {
+      var tema = null;
+      try { tema = localStorage.getItem('metas-tema'); } catch (e) {}
+      var escuro = tema ? tema === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.dataset.theme = escuro ? 'dark' : 'light';
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body>
 
+  <button class="theme-toggle floating" onclick="alternarTema()" aria-label="Alternar tema claro/escuro" title="Alternar tema">🌙</button>
+
   <!-- ===== LOGIN ===== -->
   <div id="screen-login" class="screen active">
-    <div class="auth-card">
-      <div class="auth-logo-area">
-        <div class="logo-icon">🎯</div>
-        <div>
-          <div class="auth-title">Metas</div>
-          <div class="auth-sub">Acesso ao Sistema</div>
+    <div class="auth-layout">
+      <div class="auth-hero">
+        <div class="brand"><span class="brand-icon">🎯</span> Metas</div>
+        <h1>Tudo que você quer conquistar, numa fila só.</h1>
+        <p>Defina a prioridade de cada meta e veja o mês em que cada uma fica pronta, com base no que você consegue guardar.</p>
+      </div>
+      <div class="auth-card">
+        <h2>Entrar</h2>
+        <div class="field-group">
+          <label class="field-label" for="login-email">E-mail</label>
+          <input id="login-email" class="auth-input" type="email" placeholder="seu@email.com" autocomplete="email" />
         </div>
-      </div>
-      <div class="auth-divider"></div>
-      <div class="field-group">
-        <div class="field-label">E-mail</div>
-        <input id="login-email" class="auth-input" type="email" placeholder="seu@email.com" />
-      </div>
-      <div class="field-group">
-        <div class="field-label">
-          Senha
-          <a onclick="showScreen('screen-forgot')">Esqueceu a senha?</a>
+        <div class="field-group">
+          <label class="field-label" for="login-password">Senha <a onclick="showScreen('screen-forgot')">Esqueceu a senha?</a></label>
+          <input id="login-password" class="auth-input" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" />
         </div>
-        <input id="login-password" class="auth-input" type="password" placeholder="••••••••" />
+        <button class="btn-primary" onclick="doLogin()">Entrar</button>
+        <div class="auth-footer">Novo por aqui? <a onclick="showScreen('screen-register')">Criar conta</a></div>
       </div>
-      <button class="btn-primary" onclick="doLogin()">INICIAR SESSÃO →</button>
-      <div class="auth-footer">Novo por aqui? <a onclick="showScreen('screen-register')">Criar usuário</a></div>
     </div>
   </div>
 
-  <!-- ===== REGISTER ===== -->
+  <!-- ===== CADASTRO ===== -->
   <div id="screen-register" class="screen">
-    <div class="auth-card">
-      <div class="back-link" onclick="showScreen('screen-login')">← Voltar</div>
-      <div class="icon-header">
-        <div class="icon-square">👤</div>
-        <div class="icon-header-text">
-          <div class="icon-header-title">Criar Usuário</div>
-          <div class="icon-header-sub">Novo Registro</div>
+    <div class="auth-layout">
+      <div class="auth-hero">
+        <div class="brand"><span class="brand-icon">🎯</span> Metas</div>
+        <h1>Comece pela meta que mais importa.</h1>
+        <p>As outras entram na fila e ganham data de início sozinhas.</p>
+      </div>
+      <div class="auth-card">
+        <div class="back-link" onclick="showScreen('screen-login')">← Voltar</div>
+        <h2>Criar conta</h2>
+        <div class="field-group">
+          <label class="field-label" for="reg-name">Nome</label>
+          <input id="reg-name" class="auth-input" type="text" placeholder="Como quer ser chamado" autocomplete="name" />
         </div>
+        <div class="field-group">
+          <label class="field-label" for="reg-email">E-mail</label>
+          <input id="reg-email" class="auth-input" type="email" placeholder="seu@email.com" autocomplete="email" />
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="reg-password">Senha</label>
+          <input id="reg-password" class="auth-input" type="password" placeholder="Mínimo 8 caracteres" autocomplete="new-password" />
+        </div>
+        <button class="btn-primary" onclick="doRegister()">Criar conta</button>
+        <div class="auth-footer">Já tem conta? <a onclick="showScreen('screen-login')">Entrar</a></div>
       </div>
-      <div class="auth-divider"></div>
-      <div class="field-group">
-        <div class="field-label">Nome completo</div>
-        <input id="reg-name" class="auth-input" type="text" placeholder="Seu nome" />
-      </div>
-      <div class="field-group">
-        <div class="field-label">E-mail</div>
-        <input id="reg-email" class="auth-input" type="email" placeholder="seu@email.com" />
-      </div>
-      <div class="field-group">
-        <div class="field-label">Senha</div>
-        <input id="reg-password" class="auth-input" type="password" placeholder="Mínimo 8 caracteres" />
-      </div>
-      <button class="btn-primary" onclick="doRegister()">REGISTRAR</button>
-      <div class="auth-footer">Já possui acesso? <a onclick="showScreen('screen-login')">Fazer login</a></div>
     </div>
   </div>
 
-  <!-- ===== FORGOT PASSWORD ===== -->
+  <!-- ===== ESQUECI A SENHA ===== -->
   <div id="screen-forgot" class="screen">
-    <div class="auth-card">
-      <div class="back-link" onclick="showScreen('screen-login')">← Voltar para o login</div>
-      <div class="icon-header">
-        <div class="icon-square">🔑</div>
-        <div class="icon-header-text">
-          <div class="icon-header-title">Recuperar Acesso</div>
-          <div class="icon-header-sub">Redefinir Senha</div>
+    <div class="auth-layout">
+      <div class="auth-hero">
+        <div class="brand"><span class="brand-icon">🎯</span> Metas</div>
+        <h1>Sem problema.</h1>
+        <p>Mandamos um link pra você criar uma senha nova.</p>
+      </div>
+      <div class="auth-card">
+        <div class="back-link" onclick="showScreen('screen-login')">← Voltar para o login</div>
+        <h2>Recuperar senha</h2>
+        <div class="field-group">
+          <label class="field-label" for="forgot-email">E-mail da conta</label>
+          <input id="forgot-email" class="auth-input" type="email" placeholder="seu@email.com" autocomplete="email" />
         </div>
+        <button class="btn-primary" onclick="doForgot()">Enviar link</button>
       </div>
-      <div class="auth-divider"></div>
-      <div class="field-group">
-        <div class="field-label">E-mail cadastrado</div>
-        <input id="forgot-email" class="auth-input" type="email" placeholder="seu@email.com" />
-      </div>
-      <button class="btn-primary" onclick="doForgot()">ENVIAR LINK DE RECUPERAÇÃO</button>
     </div>
   </div>
 
-  <!-- ===== DASHBOARD ===== -->
+  <!-- ===== PAINEL ===== -->
   <div id="screen-dashboard" class="screen">
-    <div class="topbar">
-      <div class="topbar-brand">
-        <div class="topbar-icon">⚡</div>
-        METAS
+    <header class="topbar">
+      <div class="brand"><span class="brand-icon">🎯</span> Metas</div>
+      <div class="topbar-actions">
+        <button class="theme-toggle" onclick="alternarTema()" aria-label="Alternar tema claro/escuro" title="Alternar tema">🌙</button>
+        <button class="btn-ghost" onclick="doLogout()" title="Sair">Sair</button>
       </div>
-      <button class="btn-logout" onclick="doLogout()" title="Sair">⇥</button>
-    </div>
+    </header>
 
-    <div class="dashboard-content">
-      <div class="greeting">
-        <h1>Olá, <span id="user-name-display">Visitante</span></h1>
-        <div class="greeting-sub" id="meta-count-display">STATUS: 0 METAS ATIVAS NO SISTEMA</div>
-      </div>
-
-      <button class="btn-new-goal" onclick="openModalNew()">
-        <span style="font-size:18px">＋</span> INICIALIZAR NOVA META
-      </button>
-
-      <div class="section-header">
-        <div class="section-title"><span>📈</span> RADAR DE OBJETIVOS</div>
-        <div class="carousel-nav">
-          <button class="carousel-btn" onclick="carouselPrev()">‹</button>
-          <button class="carousel-btn" onclick="carouselNext()">›</button>
+    <main class="dashboard-content">
+      <section class="greeting">
+        <div>
+          <h1>Olá, <span id="user-name-display">visitante</span></h1>
+          <p class="greeting-sub" id="meta-count-display">Nenhuma meta ainda</p>
         </div>
-      </div>
+        <div class="greeting-actions">
+          <button class="btn-secondary" id="btn-reorder" onclick="abrirReordenar()">↕ Reordenar</button>
+          <button class="btn-new-goal" onclick="openModalNew()">+ Nova meta</button>
+        </div>
+      </section>
 
-      <div id="priority-order" class="priority-order"></div>
+      <section class="summary" aria-label="Resumo">
+        <div class="summary-card"><span class="summary-label">Já guardado</span><strong id="resumo-guardado">R$ 0,00</strong></div>
+        <div class="summary-card"><span class="summary-label">Falta juntar</span><strong id="resumo-falta">R$ 0,00</strong></div>
+        <div class="summary-card"><span class="summary-label">Aporte por mês</span><strong id="resumo-mensal">R$ 0,00</strong></div>
+        <div class="summary-card"><span class="summary-label">Tudo pronto em</span><strong id="resumo-fim">—</strong></div>
+      </section>
 
-      <div class="goals-wrapper">
+      <section>
+        <h2 class="section-title">Suas metas</h2>
         <div id="goals-grid" class="goals-grid"></div>
+      </section>
+
+      <section>
+        <h2 class="section-title">Linha do tempo</h2>
+        <p class="section-sub">Cada meta começa quando a anterior termina, na ordem de prioridade.</p>
+        <div id="priority-order" class="timeline"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ===== VISÃO PÚBLICA (link só leitura) ===== -->
+  <div id="screen-public" class="screen">
+    <header class="topbar">
+      <div class="brand"><span class="brand-icon">🎯</span> Metas</div>
+      <div class="topbar-actions">
+        <button class="theme-toggle" onclick="alternarTema()" aria-label="Alternar tema claro/escuro" title="Alternar tema">🌙</button>
       </div>
-    </div>
+    </header>
+    <main class="dashboard-content public-content" id="public-content"></main>
   </div>
 
   <!-- ===== MODAL NOVA META ===== -->
   <div id="modal-new" class="modal-overlay">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-labelledby="modal-new-titulo">
       <div class="modal-header">
-        <div class="modal-header-left">
-          <div class="modal-logo">🎯</div>
-          <div class="modal-title">Nova Interface de Meta</div>
-        </div>
-        <button class="btn-close" onclick="closeModal('modal-new')">✕</button>
+        <h3 class="modal-title" id="modal-new-titulo">Nova meta</h3>
+        <button class="btn-close" onclick="closeModal('modal-new')" aria-label="Fechar">✕</button>
       </div>
 
       <div class="modal-field">
-        <label class="modal-label">Identificação (Título)</label>
-        <input id="new-title" class="modal-input" placeholder="Ex: Setup PC Gamer" />
+        <label class="modal-label" for="new-title">Nome da meta</label>
+        <input id="new-title" class="modal-input" placeholder="Ex: Notebook novo" maxlength="80" />
       </div>
 
       <div class="modal-field">
-        <label class="modal-label">Categoria</label>
+        <span class="modal-label">Categoria</span>
         <input type="hidden" id="new-category" value="outro" />
         <div id="new-category-picker" class="category-picker"></div>
       </div>
 
-      <!-- Image input melhorado -->
       <div class="modal-field">
-        <label class="modal-label">Imagem da Meta</label>
+        <span class="modal-label">Imagem</span>
         <div class="img-input-tabs">
           <button class="img-tab active" onclick="switchImgTab('new','url')">🔗 URL</button>
-          <button class="img-tab" onclick="switchImgTab('new','upload')">📁 Upload</button>
+          <button class="img-tab" onclick="switchImgTab('new','upload')">📁 Arquivo</button>
           <button class="img-tab" onclick="switchImgTab('new','search')">🔍 Buscar</button>
         </div>
         <div id="new-img-url-panel" class="img-panel active">
-          <input id="new-img-url" class="modal-input" placeholder="https://images.unsplash.com/..." oninput="previewImg('new')" />
+          <input id="new-img-url" class="modal-input" placeholder="https://..." oninput="previewImg('new')" />
         </div>
         <div id="new-img-upload-panel" class="img-panel">
           <label class="upload-area" id="new-upload-area">
             <input type="file" accept="image/*" onchange="handleUpload(this,'new')" hidden />
             <span class="upload-icon">📂</span>
-            <span class="upload-text">Clique ou arraste uma imagem</span>
+            <span class="upload-text">Clique pra escolher uma imagem</span>
           </label>
         </div>
         <div id="new-img-search-panel" class="img-panel">
           <div class="img-search-row">
-            <input id="new-img-search-input" class="modal-input" placeholder="Ex: mountain bike, setup gamer..." />
-            <button class="btn-search-img" onclick="searchUnsplash('new')">Buscar</button>
+            <input id="new-img-search-input" class="modal-input" placeholder="Ex: praia, notebook, carro..." onkeydown="if(event.key==='Enter')searchUnsplash('new')" />
+            <button class="btn-secondary" onclick="searchUnsplash('new')">Buscar</button>
           </div>
           <div id="new-img-results" class="img-results"></div>
           <a class="unsplash-credit" href="https://unsplash.com/?utm_source=web-metas&utm_medium=referral" target="_blank" rel="noopener">Fotos via Unsplash</a>
         </div>
         <div id="new-img-preview" class="img-preview-box" style="display:none">
-          <img id="new-img-preview-img" src="" alt="Preview" />
-          <button class="img-preview-remove" onclick="removeImgPreview('new')">✕</button>
+          <img id="new-img-preview-img" src="" alt="Prévia da imagem" />
+          <button class="img-preview-remove" onclick="removeImgPreview('new')" aria-label="Remover imagem">✕</button>
         </div>
         <input type="hidden" id="new-img-final" />
       </div>
 
       <div class="modal-row">
         <div class="modal-field">
-          <label class="modal-label">Valor Total</label>
-          <input id="new-total" class="modal-input" type="number" placeholder="Ex: 12000" />
+          <label class="modal-label" for="new-total">Valor total</label>
+          <input id="new-total" class="modal-input" type="text" inputmode="decimal" placeholder="Ex: 6.500,00" oninput="atualizarDicaAporte('new')" />
         </div>
         <div class="modal-field">
-          <label class="modal-label">Valor Guardado (Atual)</label>
-          <input id="new-saved" class="modal-input" type="number" placeholder="Ex: 1500" />
+          <label class="modal-label" for="new-saved">Já guardado</label>
+          <input id="new-saved" class="modal-input" type="text" inputmode="decimal" placeholder="Ex: 1.200,00" oninput="atualizarDicaAporte('new')" />
         </div>
       </div>
       <div class="modal-row">
         <div class="modal-field">
-          <label class="modal-label">Aporte Mensal</label>
-          <input id="new-monthly" class="modal-input" type="number" placeholder="Ex: 800" />
+          <label class="modal-label" for="new-monthly">Aporte por mês</label>
+          <input id="new-monthly" class="modal-input" type="text" inputmode="decimal" placeholder="Ex: 500,00" oninput="atualizarDicaAporte('new')" />
         </div>
         <div class="modal-field">
-          <label class="modal-label">Prioridade (1 = Maior)</label>
-          <input id="new-prio" class="modal-input" type="number" placeholder="1" value="1" min="1"
-            oninput="updateStartMonthVisibility('new')" />
+          <label class="modal-label" for="new-prio">Prioridade (1 = primeira)</label>
+          <input id="new-prio" class="modal-input" type="number" value="1" min="1" oninput="updateStartMonthVisibility('new')" />
         </div>
       </div>
-
-      <div class="modal-field" id="new-start-month-field" style="display:block">
-        <label class="modal-label">📅 Mês de Início (Meta Principal)</label>
-        <input id="new-start-month" class="modal-input" type="month" />
-        <div style="font-size:11px;color:var(--text3);margin-top:4px">
-          As demais metas calcularão o início automaticamente após esta.
+      <div class="modal-row">
+        <div class="modal-field" id="new-start-month-field">
+          <label class="modal-label" for="new-start-month">Mês de início</label>
+          <input id="new-start-month" class="modal-input" type="month" />
+          <small class="field-hint">Só a meta 1 escolhe; as outras começam quando a anterior termina.</small>
+        </div>
+        <div class="modal-field">
+          <label class="modal-label" for="new-deadline">Quero até (opcional)</label>
+          <input id="new-deadline" class="modal-input" type="month" oninput="atualizarDicaAporte('new')" />
         </div>
       </div>
+      <p id="new-monthly-hint" class="aporte-hint" hidden></p>
 
       <div class="modal-field">
         <div class="specs-header">
-          <label class="modal-label" style="margin:0">Especificações Extras</label>
-          <button class="btn-add-spec" onclick="addSpec('new-specs')">+ Adicionar</button>
+          <span class="modal-label">Detalhes extras</span>
+          <button class="btn-link" onclick="addSpec('new-specs')">+ Adicionar</button>
         </div>
         <div id="new-specs" class="specs-list">
-          <div class="spec-empty">Nenhuma especificação adicionada.</div>
+          <div class="spec-empty">Nenhum detalhe adicionado.</div>
         </div>
       </div>
 
-      <button class="btn-submit" onclick="compileNewGoal()">COMPILAR NOVA META</button>
+      <button class="btn-primary" onclick="compileNewGoal()">Criar meta</button>
     </div>
   </div>
 
   <!-- ===== MODAL EDITAR META ===== -->
   <div id="modal-edit" class="modal-overlay">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-labelledby="modal-edit-titulo">
       <div class="modal-header">
-        <div class="modal-header-left">
-          <div class="modal-logo">🎯</div>
-          <div class="modal-title">Editar Meta</div>
-        </div>
-        <button class="btn-close" onclick="closeModal('modal-edit')">✕</button>
+        <h3 class="modal-title" id="modal-edit-titulo">Editar meta</h3>
+        <button class="btn-close" onclick="closeModal('modal-edit')" aria-label="Fechar">✕</button>
       </div>
 
       <input type="hidden" id="edit-id" />
       <div class="modal-field">
-        <label class="modal-label">Identificação (Título)</label>
-        <input id="edit-title" class="modal-input" />
+        <label class="modal-label" for="edit-title">Nome da meta</label>
+        <input id="edit-title" class="modal-input" maxlength="80" />
       </div>
 
       <div class="modal-field">
-        <label class="modal-label">Categoria</label>
+        <span class="modal-label">Categoria</span>
         <input type="hidden" id="edit-category" value="outro" />
         <div id="edit-category-picker" class="category-picker"></div>
       </div>
 
-      <!-- Image input melhorado editar -->
       <div class="modal-field">
-        <label class="modal-label">Imagem da Meta</label>
+        <span class="modal-label">Imagem</span>
         <div class="img-input-tabs">
           <button class="img-tab active" onclick="switchImgTab('edit','url')">🔗 URL</button>
-          <button class="img-tab" onclick="switchImgTab('edit','upload')">📁 Upload</button>
+          <button class="img-tab" onclick="switchImgTab('edit','upload')">📁 Arquivo</button>
           <button class="img-tab" onclick="switchImgTab('edit','search')">🔍 Buscar</button>
         </div>
         <div id="edit-img-url-panel" class="img-panel active">
@@ -261,78 +285,86 @@
           <label class="upload-area" id="edit-upload-area">
             <input type="file" accept="image/*" onchange="handleUpload(this,'edit')" hidden />
             <span class="upload-icon">📂</span>
-            <span class="upload-text">Clique ou arraste uma imagem</span>
+            <span class="upload-text">Clique pra escolher uma imagem</span>
           </label>
         </div>
         <div id="edit-img-search-panel" class="img-panel">
           <div class="img-search-row">
-            <input id="edit-img-search-input" class="modal-input" placeholder="Ex: mountain bike, setup gamer..." />
-            <button class="btn-search-img" onclick="searchUnsplash('edit')">Buscar</button>
+            <input id="edit-img-search-input" class="modal-input" placeholder="Ex: praia, notebook, carro..." onkeydown="if(event.key==='Enter')searchUnsplash('edit')" />
+            <button class="btn-secondary" onclick="searchUnsplash('edit')">Buscar</button>
           </div>
           <div id="edit-img-results" class="img-results"></div>
           <a class="unsplash-credit" href="https://unsplash.com/?utm_source=web-metas&utm_medium=referral" target="_blank" rel="noopener">Fotos via Unsplash</a>
         </div>
         <div id="edit-img-preview" class="img-preview-box" style="display:none">
-          <img id="edit-img-preview-img" src="" alt="Preview" />
-          <button class="img-preview-remove" onclick="removeImgPreview('edit')">✕</button>
+          <img id="edit-img-preview-img" src="" alt="Prévia da imagem" />
+          <button class="img-preview-remove" onclick="removeImgPreview('edit')" aria-label="Remover imagem">✕</button>
         </div>
         <input type="hidden" id="edit-img-final" />
       </div>
 
       <div class="modal-row">
         <div class="modal-field">
-          <label class="modal-label">Valor Total</label>
-          <input id="edit-total" class="modal-input" type="number" />
+          <label class="modal-label" for="edit-total">Valor total</label>
+          <input id="edit-total" class="modal-input" type="text" inputmode="decimal" oninput="atualizarDicaAporte('edit')" />
         </div>
         <div class="modal-field">
-          <label class="modal-label">Valor Guardado (Atual)</label>
-          <input id="edit-saved" class="modal-input" type="number" />
+          <label class="modal-label" for="edit-saved">Já guardado</label>
+          <input id="edit-saved" class="modal-input" type="text" inputmode="decimal" oninput="atualizarDicaAporte('edit')" />
         </div>
       </div>
       <div class="modal-row">
         <div class="modal-field">
-          <label class="modal-label">Aporte Mensal</label>
-          <input id="edit-monthly" class="modal-input" type="number" />
+          <label class="modal-label" for="edit-monthly">Aporte por mês</label>
+          <input id="edit-monthly" class="modal-input" type="text" inputmode="decimal" oninput="atualizarDicaAporte('edit')" />
         </div>
         <div class="modal-field">
-          <label class="modal-label">Prioridade (1 = Maior)</label>
-          <input id="edit-prio" class="modal-input" type="number" min="1"
-            oninput="updateStartMonthVisibility('edit')" />
+          <label class="modal-label" for="edit-prio">Prioridade (1 = primeira)</label>
+          <input id="edit-prio" class="modal-input" type="number" min="1" oninput="updateStartMonthVisibility('edit')" />
         </div>
       </div>
-
-      <div class="modal-field" id="edit-start-month-field" style="display:none">
-        <label class="modal-label">📅 Mês de Início (Meta Principal)</label>
-        <input id="edit-start-month" class="modal-input" type="month" />
-        <div style="font-size:11px;color:var(--text3);margin-top:4px">
-          As demais metas calcularão o início automaticamente após esta.
+      <div class="modal-row">
+        <div class="modal-field" id="edit-start-month-field" style="display:none">
+          <label class="modal-label" for="edit-start-month">Mês de início</label>
+          <input id="edit-start-month" class="modal-input" type="month" />
+          <small class="field-hint">Só a meta 1 escolhe; as outras começam quando a anterior termina.</small>
         </div>
+        <div class="modal-field">
+          <label class="modal-label" for="edit-deadline">Quero até (opcional)</label>
+          <input id="edit-deadline" class="modal-input" type="month" oninput="atualizarDicaAporte('edit')" />
+        </div>
+      </div>
+      <p id="edit-monthly-hint" class="aporte-hint" hidden></p>
+
+      <div class="modal-field share-field">
+        <label class="switch-row">
+          <input type="checkbox" id="edit-publico" onchange="atualizarLinkPublico()" />
+          <span>Compartilhar esta meta por link (só leitura, sem mostrar as outras)</span>
+        </label>
+        <div id="edit-share-link" class="share-link" hidden></div>
       </div>
 
       <div class="modal-field">
         <div class="specs-header">
-          <label class="modal-label" style="margin:0">Especificações Extras</label>
-          <button class="btn-add-spec" onclick="addSpec('edit-specs')">+ Adicionar</button>
+          <span class="modal-label">Detalhes extras</span>
+          <button class="btn-link" onclick="addSpec('edit-specs')">+ Adicionar</button>
         </div>
         <div id="edit-specs" class="specs-list"></div>
       </div>
 
       <div class="modal-footer">
-        <button class="btn-danger-icon" onclick="deleteGoal()" title="Excluir meta">🗑</button>
-        <button class="btn-submit" onclick="updateGoal()">ATUALIZAR META</button>
+        <button class="btn-danger-icon" onclick="deleteGoal()" title="Excluir meta" aria-label="Excluir meta">🗑</button>
+        <button class="btn-primary" onclick="updateGoal()">Salvar</button>
       </div>
     </div>
   </div>
 
   <!-- ===== MODAL DETALHES ===== -->
   <div id="modal-detail" class="modal-overlay">
-    <div class="modal">
+    <div class="modal modal-wide" role="dialog" aria-label="Detalhes da meta">
       <div class="modal-header">
-        <div class="modal-header-left">
-          <div class="modal-logo">📊</div>
-          <div class="modal-title">Detalhes do Projeto</div>
-        </div>
-        <button class="btn-close" onclick="closeModal('modal-detail')">✕</button>
+        <h3 class="modal-title">Detalhes</h3>
+        <button class="btn-close" onclick="closeModal('modal-detail')" aria-label="Fechar">✕</button>
       </div>
       <div id="detail-content"></div>
     </div>
@@ -340,56 +372,57 @@
 
   <!-- ===== MODAL ADICIONAR DINHEIRO ===== -->
   <div id="modal-deposit" class="modal-overlay">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-labelledby="modal-deposit-titulo">
       <div class="modal-header">
-        <div class="modal-header-left">
-          <div class="modal-logo">💰</div>
-          <div class="modal-title">Adicionar Dinheiro</div>
-        </div>
-        <button class="btn-close" onclick="closeModal('modal-deposit')">✕</button>
+        <h3 class="modal-title" id="modal-deposit-titulo">Adicionar dinheiro</h3>
+        <button class="btn-close" onclick="closeModal('modal-deposit')" aria-label="Fechar">✕</button>
       </div>
       <input type="hidden" id="deposit-id" />
-      <div id="deposit-info" style="font-size:13px;color:var(--text2);margin-bottom:14px"></div>
+      <div id="deposit-info" class="deposit-info"></div>
       <div class="modal-field">
-        <label class="modal-label">Valor a adicionar</label>
-        <input id="deposit-amount" class="modal-input" type="text" inputmode="decimal"
-          placeholder="Ex: 150,00" onkeydown="if(event.key==='Enter')confirmDeposit()" />
+        <label class="modal-label" for="deposit-amount">Valor</label>
+        <input id="deposit-amount" class="modal-input" type="text" inputmode="decimal" placeholder="Ex: 150,00" onkeydown="if(event.key==='Enter')confirmDeposit()" />
       </div>
       <div class="modal-footer">
-        <button class="btn-submit" onclick="confirmDeposit()">ADICIONAR</button>
+        <button class="btn-primary" onclick="confirmDeposit()">Adicionar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL REORDENAR ===== -->
+  <div id="modal-reorder" class="modal-overlay">
+    <div class="modal" role="dialog" aria-labelledby="modal-reorder-titulo">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-reorder-titulo">Reordenar prioridades</h3>
+        <button class="btn-close" onclick="closeModal('modal-reorder')" aria-label="Fechar">✕</button>
+      </div>
+      <p class="section-sub">Arraste (ou use as setas) e veja o novo cronograma antes de salvar.</p>
+      <ol id="reorder-list" class="reorder-list"></ol>
+      <div class="modal-footer">
+        <button class="btn-ghost" onclick="closeModal('modal-reorder')">Cancelar</button>
+        <button class="btn-primary" onclick="salvarReordenacao()">Salvar nova ordem</button>
       </div>
     </div>
   </div>
 
   <!-- ===== MODAL CONFIRMAR EXCLUSÃO ===== -->
   <div id="modal-confirm-delete" class="modal-overlay">
-    <div class="modal">
+    <div class="modal modal-small" role="alertdialog" aria-labelledby="modal-delete-titulo">
       <div class="modal-header">
-        <div class="modal-header-left">
-          <div class="modal-logo">🗑</div>
-          <div class="modal-title">Excluir Meta</div>
-        </div>
-        <button class="btn-close" onclick="closeModal('modal-confirm-delete')">✕</button>
+        <h3 class="modal-title" id="modal-delete-titulo">Excluir meta?</h3>
+        <button class="btn-close" onclick="closeModal('modal-confirm-delete')" aria-label="Fechar">✕</button>
       </div>
-      <div style="font-size:14px;color:var(--text2);margin-bottom:6px">
-        Tem certeza que deseja excluir esta meta? Essa ação não pode ser desfeita.
-      </div>
+      <p class="section-sub">A meta e o histórico de aportes dela somem de vez.</p>
       <div class="modal-footer">
-        <button class="btn-cancel" onclick="closeModal('modal-confirm-delete')">CANCELAR</button>
-        <button class="btn-danger-submit" onclick="confirmDeleteGoal()">EXCLUIR</button>
+        <button class="btn-ghost" onclick="closeModal('modal-confirm-delete')">Cancelar</button>
+        <button class="btn-danger" onclick="confirmDeleteGoal()">Excluir</button>
       </div>
     </div>
   </div>
 
-  <!-- ===== LOADING OVERLAY ===== -->
-  <div id="loading-overlay" class="loading-overlay">
-    <div class="loading-spinner"></div>
-  </div>
+  <div id="loading-overlay" class="loading-overlay"><div class="loading-spinner"></div></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <!-- ===== TOAST ===== -->
-  <div id="toast" class="toast"></div>
-
-  <!-- Firebase SDKs (modular via CDN compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
