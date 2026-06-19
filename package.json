@@ -3,14 +3,19 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Metas financeiras com sequenciamento por prioridade, Firebase Auth e Firestore, build empacotado com esbuild e ofuscado com javascript-obfuscator para o deploy na Netlify.",
+  "description": "Metas financeiras em fila de prioridade, com Firebase Auth e Firestore; build empacotado com esbuild e ofuscado pro deploy na Vercel.",
   "license": "SEE LICENSE IN LICENSE",
   "author": "Guilherme Araujo de Castro",
   "scripts": {
-    "build": "node build.js"
+    "build": "node build.js",
+    "test": "node --test \"testes/*.test.mjs\"",
+    "test:e2e": "playwright test",
+    "dev": "node scripts/servidor-dev.js"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "esbuild": "^0.24.0",
+    "html-minifier-terser": "^7.2.0",
     "javascript-obfuscator": "^4.1.1"
   }
 }

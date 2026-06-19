@@ -1,6 +1,8 @@
 node_modules/
 dist/
-.netlify/
+.vercel/
 .env
 .DS_Store
 _to_delete/
+test-results/
+playwright-report/
