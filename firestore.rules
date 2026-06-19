@@ -1,0 +1,37 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function dono(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // Formato mínimo de uma meta (evita gravar lixo ou textos gigantes).
+    function metaValida(m) {
+      return m.title is string && m.title.size() > 0 && m.title.size() <= 120
+        && m.total is number && m.total > 0
+        && m.saved is number && m.saved >= 0
+        && m.get('monthly', 0) is number
+        && m.get('prio', 1) is int
+        && m.get('publico', false) is bool
+        && m.get('specs', []) is list && m.get('specs', []).size() <= 30
+        && m.get('img', '') is string && m.get('img', '').size() <= 900000;
+    }
+
+    match /users/{userId} {
+      allow read, write: if dono(userId);
+
+      match /goals/{goalId} {
+        // Meta marcada como "compartilhar": qualquer um lê SÓ ela, pelo link (sem listar as outras).
+        allow get: if dono(userId) || resource.data.publico == true;
+        allow list, delete: if dono(userId);
+        allow create, update: if dono(userId) && metaValida(request.resource.data);
+
+        // Histórico de aportes: sempre privado.
+        match /contributions/{aporteId} {
+          allow read, delete: if dono(userId);
+          allow create: if dono(userId) && request.resource.data.amount is number && request.resource.data.total is number;
+        }
+      }
+    }
+  }
+}

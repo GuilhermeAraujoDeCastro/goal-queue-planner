@@ -1,13 +1,23 @@
-// Entrada de imagem da meta: URL direta, upload de arquivo, ou busca.
-//
-// A busca usava source.unsplash.com, um endpoint que não pedia API key
-// mas que a própria Unsplash desativou (ficou fora do ar depois de 2024).
-// A busca agora chama uma função serverless da Netlify
-// (netlify/functions/unsplash-search.js), que fala com a API oficial da
-// Unsplash usando uma chave guardada só no servidor. O navegador nunca
-// vê essa chave.
+// Imagem da meta: URL direta, arquivo do aparelho ou busca na Unsplash.
+// A busca passa pela function /api/unsplash-search (a chave fica só na Vercel).
 
 import { showToast } from './ui.js';
+import { escapeHtml, urlImagemSegura } from './planejamento.js';
+
+const CACHE_BUSCA_MS = 24 * 60 * 60 * 1000; // mesma busca não gasta a cota de 50/hora de novo
+
+function lerCacheBusca(termo) {
+  try {
+    const item = JSON.parse(localStorage.getItem('unsplash:' + termo.toLowerCase()) || 'null');
+    return item && Date.now() - item.em < CACHE_BUSCA_MS ? item.fotos : null;
+  } catch {
+    return null;
+  }
+}
+
+function salvarCacheBusca(termo, fotos) {
+  try { localStorage.setItem('unsplash:' + termo.toLowerCase(), JSON.stringify({ em: Date.now(), fotos })); } catch { /* sem espaço: só não guarda */ }
+}
 
 export function switchImgTab(prefix, tab) {
   const scope = document.getElementById(`modal-${prefix}`);
@@ -29,7 +39,7 @@ export function previewImg(prefix) {
   const img = document.getElementById(`${prefix}-img-preview-img`);
   const fin = document.getElementById(`${prefix}-img-final`);
 
-  if (url) {
+  if (url && urlImagemSegura(url)) {
     img.src = url;
     box.style.display = 'block';
     fin.value = url;
@@ -109,29 +119,36 @@ export async function searchUnsplash(prefix) {
   const results = document.getElementById(`${prefix}-img-results`);
   if (!query) { showToast('Digite algo para buscar', 'error'); return; }
 
-  results.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:8px">Buscando...</div>';
+  results.innerHTML = '<div class="img-search-msg">Buscando...</div>';
 
-  let photos;
-  try {
-    const res = await fetch(`/.netlify/functions/unsplash-search?query=${encodeURIComponent(query)}`);
-    if (!res.ok) throw new Error('status ' + res.status);
-    const data = await res.json();
-    photos = data.photos || [];
-  } catch (err) {
-    console.error('Erro na busca de imagens:', err);
-    results.innerHTML = '<div style="color:var(--danger);font-size:12px;padding:8px">Busca indisponível agora. Tente de novo mais tarde.</div>';
-    return;
+  let photos = lerCacheBusca(query);
+  if (!photos) {
+    try {
+      const res = await fetch(`/api/unsplash-search?query=${encodeURIComponent(query)}`);
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 429) {
+        results.innerHTML = '<div class="img-search-msg erro">A busca gratuita da Unsplash chegou no limite desta hora (50 buscas). Tente daqui a pouco ou cole a URL de uma imagem.</div>';
+        return;
+      }
+      if (!res.ok) throw new Error(data.error || 'status ' + res.status);
+      photos = data.photos || [];
+      salvarCacheBusca(query, photos);
+    } catch (err) {
+      console.error('Erro na busca de imagens:', err);
+      results.innerHTML = '<div class="img-search-msg erro">Busca indisponível agora. Tente de novo mais tarde.</div>';
+      return;
+    }
   }
 
   if (photos.length === 0) {
-    results.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:8px">Nenhum resultado.</div>';
+    results.innerHTML = '<div class="img-search-msg">Nenhum resultado.</div>';
     return;
   }
 
-  results.innerHTML = photos.map((p, i) => `
-    <div class="img-result-item" data-photo='${JSON.stringify(p).replace(/'/g, '&#39;')}' onclick="pickSearchImg('${prefix}', this)">
-      <img src="${p.thumb}" alt="Foto de ${p.authorName} no Unsplash" loading="lazy" />
-      <a class="img-credit" href="${p.authorLink}" target="_blank" rel="noopener" onclick="event.stopPropagation()">📷 ${p.authorName}</a>
+  results.innerHTML = photos.map(p => `
+    <div class="img-result-item" data-photo="${escapeHtml(JSON.stringify(p))}" onclick="pickSearchImg('${prefix}', this)">
+      <img src="${escapeHtml(p.thumb)}" alt="Foto de ${escapeHtml(p.authorName)} no Unsplash" loading="lazy" />
+      <a class="img-credit" href="${escapeHtml(p.authorLink)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">📷 ${escapeHtml(p.authorName)}</a>
     </div>`).join('');
 }
 
@@ -152,7 +169,7 @@ export function pickSearchImg(prefix, el) {
   // verdade, não só pré-visualizada). Isso conta pras estatísticas do
   // fotógrafo; se falhar, não bloqueia o uso da imagem.
   if (photo.downloadLocation) {
-    fetch(`/.netlify/functions/unsplash-search?trackDownload=${encodeURIComponent(photo.downloadLocation)}`)
+    fetch(`/api/unsplash-search?trackDownload=${encodeURIComponent(photo.downloadLocation)}`)
       .catch(() => {});
   }
 }
