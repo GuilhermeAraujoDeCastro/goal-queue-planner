@@ -27,7 +27,7 @@ export function urlImagemSegura(url) {
   return /^(https?:\/\/|data:image\/)/i.test(u) ? u : '';
 }
 
-export function mesesParaTerminar(meta) {
+function mesesParaTerminar(meta) {
   const falta = Math.max(0, (meta.total || 0) - (meta.saved || 0));
   if (falta === 0) return 0;
   return meta.monthly > 0 ? Math.ceil(falta / meta.monthly) : null;

@@ -4,7 +4,7 @@
 const UTM = 'utm_source=web-metas&utm_medium=referral';
 
 // Só aceita avisar download pra própria API da Unsplash: antes qualquer URL recebia a chave no cabeçalho.
-export function urlDeDownloadValida(url) {
+function urlDeDownloadValida(url) {
   try {
     const u = new URL(url);
     return u.protocol === 'https:' && u.hostname === 'api.unsplash.com' && u.pathname.includes('/download');
@@ -14,7 +14,7 @@ export function urlDeDownloadValida(url) {
 }
 
 // Resposta da Unsplash -> só o que o app usa.
-export function resumirFotos(data) {
+function resumirFotos(data) {
   return (data.results || []).map((p) => ({
     thumb: p.urls.thumb,
     full: p.urls.regular,

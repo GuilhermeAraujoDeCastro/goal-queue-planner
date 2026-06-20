@@ -152,7 +152,7 @@ export async function searchUnsplash(prefix) {
     </div>`).join('');
 }
 
-export function pickSearchImg(prefix, el) {
+function pickSearchImg(prefix, el) {
   document.querySelectorAll(`#${prefix}-img-results .img-result-item`).forEach(i => i.classList.remove('picked'));
   el.classList.add('picked');
 
