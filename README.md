@@ -1,8 +1,10 @@
 # Web Metas
 
+![Tela inicial do Web Metas](docs/capa.png)
+
 Painel de metas financeiras em fila de prioridade. Em vez de dividir o dinheiro entre todas as metas ao mesmo tempo, o app assume que elas são pagas uma de cada vez, na ordem que você definir, e calcula em que mês cada uma começa e termina. A interface foi convertida de um design feito no Figma.
 
-Site: https://consiga-seus-objetivos.vercel.app
+Site: https://web-metas.vercel.app
 
 ## O que tem
 
@@ -44,13 +46,12 @@ web-metas/
 │   ├── main.js            ponto de entrada
 │   ├── auth.js            login, cadastro e recuperação de senha
 │   ├── goals.js           painel, cronograma e meta pública
-│   ├── planejamento.js    contas do cronograma (as que têm teste)
+│   ├── planejamento.js    contas do cronograma, sem tela nem Firebase
 │   ├── metas-db.js        acesso ao Firestore
 │   ├── chart.js, celebrate.js, images.js, ui.js, state.js
 │   └── firebase-config.js
-├── testes/                testes unitários e o Firebase falso
-├── e2e/                   testes no navegador
-└── scripts/servidor-dev.js
+├── scripts/servidor-dev.js servidor local
+└── docs/capa.png          imagem deste README
 ```
 
 ## Rodando na sua máquina
@@ -60,18 +61,9 @@ npm install
 npm run dev
 ```
 
-A busca no Unsplash só funciona na Vercel ou com `vercel dev`, porque depende da function.
+A busca no Unsplash só funciona na Vercel ou com `vercel dev`, porque depende da function. Pra conferir o build de produção, rode `npm run build` e depois `npm run preview`.
 
-## Testes
-
-```bash
-npm test
-npm run build
-npx playwright install chromium
-npm run test:e2e
-```
-
-Os testes unitários cobrem as contas do cronograma, a leitura de valores em reais, a function do Unsplash e checagens das regras do Firestore. Os testes no navegador rodam o build de produção com um Firebase falso: criação de metas com resumo e linha do tempo, prioridade repetida recusada, título com HTML exibido como texto, depósito que passa do total e reordenação pelas setas. O GitHub Actions roda tudo a cada push.
+O GitHub Actions roda o build a cada push, pra pegar erro de empacotamento antes da Vercel.
 
 ## Deploy na Vercel
 

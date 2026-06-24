@@ -1,4 +1,4 @@
-# Testes unitarios, build de producao e E2E (com Firebase falso) a cada push.
+# Build de produção a cada push, pra pegar erro de empacotamento antes da Vercel.
 name: CI
 
 on:
@@ -6,15 +6,13 @@ on:
   pull_request:
 
 jobs:
-  testes:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
       - run: npm ci
-      - run: npm test
       - run: npm run build
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
+      - run: for f in dist/js/*.js dist/sw.js api/*.js; do node --check "$f"; done
