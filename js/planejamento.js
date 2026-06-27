@@ -8,10 +8,11 @@ export function fmtR(valor) {
 // Aceita "1.234,56", "1.000" (mil) e "1234.56": ponto só é decimal quando não tem cara de milhar.
 export function parseValorBR(texto) {
   const limpo = String(texto ?? '').trim().replace(/^R\$\s*/, '');
-  if (!limpo) return NaN;
-  if (limpo.includes(',')) return parseFloat(limpo.replace(/\./g, '').replace(',', '.'));
-  if (/^\d{1,3}(\.\d{3})+$/.test(limpo)) return parseFloat(limpo.replace(/\./g, ''));
-  return parseFloat(limpo);
+  // O texto todo tem que ser número: "10abc" e "1e309" viravam 10 e Infinity com o parseFloat solto.
+  if (!/^(\d{1,3}(\.\d{3})+|\d+)(,\d+)?$|^\d+\.\d+$/.test(limpo)) return NaN;
+  if (limpo.includes(',')) return Number(limpo.replace(/\./g, '').replace(',', '.'));
+  if (/^\d{1,3}(\.\d{3})+$/.test(limpo)) return Number(limpo.replace(/\./g, ''));
+  return Number(limpo);
 }
 
 // Texto seguro pra colocar dentro de innerHTML ou de atributo.
@@ -44,7 +45,8 @@ function somarMeses(data, meses) {
 }
 
 // Metas pagas em sequência por prioridade: cada uma começa quando a anterior termina.
-// Devolve { [id]: { inicio, fim, meses } } (fim = null quando não há aporte mensal).
+// Devolve { [id]: { inicio, fim, conclusao, meses } }. fim é o mês em que a próxima começa;
+// conclusao é o mês do último aporte, o que aparece como "fica pronta em" (null sem aporte mensal).
 export function cronograma(metas, hoje = new Date()) {
   const ordenadas = [...metas].sort((a, b) => a.prio - b.prio);
   const principal = ordenadas[0];
@@ -54,14 +56,15 @@ export function cronograma(metas, hoje = new Date()) {
     const meses = mesesParaTerminar(meta);
     const inicio = cursor;
     const fim = meses === null ? null : somarMeses(inicio, meses);
-    resultado[meta.id] = { inicio, fim, meses };
+    const conclusao = meses === null ? null : somarMeses(inicio, Math.max(0, meses - 1));
+    resultado[meta.id] = { inicio, fim, conclusao, meses };
     // Meta sem aporte trava a fila: as seguintes ficam sem data.
     cursor = fim || cursor;
     if (fim === null) cursor = null;
     if (cursor === null) break;
   }
   for (const meta of ordenadas) {
-    if (!resultado[meta.id]) resultado[meta.id] = { inicio: null, fim: null, meses: mesesParaTerminar(meta) };
+    if (!resultado[meta.id]) resultado[meta.id] = { inicio: null, fim: null, conclusao: null, meses: mesesParaTerminar(meta) };
   }
   return resultado;
 }
@@ -71,7 +74,8 @@ export function aporteNecessario(meta, inicio) {
   const alvo = inicioDoMes(meta.deadline);
   if (!alvo || !inicio) return null;
   const falta = Math.max(0, (meta.total || 0) - (meta.saved || 0));
-  const meses = (alvo.getFullYear() - inicio.getFullYear()) * 12 + (alvo.getMonth() - inicio.getMonth());
+  // Conta o mês do início e o da data alvo: começar em outubro com alvo em outubro dá um aporte.
+  const meses = (alvo.getFullYear() - inicio.getFullYear()) * 12 + (alvo.getMonth() - inicio.getMonth()) + 1;
   if (falta === 0) return 0;
   if (meses <= 0) return Infinity;
   return Math.ceil((falta / meses) * 100) / 100;
@@ -81,8 +85,8 @@ export function aporteNecessario(meta, inicio) {
 export function vaiAtrasar(meta, previsao) {
   const alvo = inicioDoMes(meta.deadline);
   if (!alvo) return false;
-  if (!previsao || !previsao.fim) return true;
-  return previsao.fim.getTime() > alvo.getTime();
+  if (!previsao || !previsao.conclusao) return true;
+  return previsao.conclusao.getTime() > alvo.getTime();
 }
 
 // Marcos (25/50/75%) que um depósito acabou de cruzar.

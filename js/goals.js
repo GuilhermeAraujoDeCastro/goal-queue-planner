@@ -93,7 +93,7 @@ function cardHtml(g, previsao) {
       </div>
       <div class="goal-body">
         <div class="goal-name">${titulo}</div>
-        ${previsao && previsao.inicio ? `<div class="goal-start-badge">📅 ${mesPorExtenso(previsao.inicio)} → ${previsao.fim ? mesPorExtenso(previsao.fim) : 'sem previsão'}</div>` : ''}
+        ${previsao && previsao.inicio ? `<div class="goal-start-badge">📅 ${mesPorExtenso(previsao.inicio)} → ${previsao.conclusao ? mesPorExtenso(previsao.conclusao) : 'sem previsão'}</div>` : ''}
         <div class="sync-label">Progresso <span class="sync-pct">${pct}%</span></div>
         <div class="progress-track"><div class="progress-bar" style="width:${pct}%"></div></div>
         <div class="progress-values"><span>${fmtR(g.saved)}</span><span>${fmtR(g.total)}</span></div>
@@ -109,6 +109,11 @@ function cardHtml(g, previsao) {
     </article>`;
 }
 
+// Depois de excluir a #2 de três metas sobram #1 e #3: a próxima é #4, não #3 (que já existe).
+function proximaPrioridade() {
+  return Math.max(0, ...state.goals.map(g => Number(g.prio) || 0)) + 1;
+}
+
 function mesDoTexto(texto) {
   const [ano, mes] = String(texto || '').split('-').map(Number);
   return ano && mes ? new Date(ano, mes - 1, 1) : null;
@@ -117,8 +122,10 @@ function mesDoTexto(texto) {
 function renderResumo(metas, plano) {
   const guardado = metas.reduce((s, g) => s + (g.saved || 0), 0);
   const falta = metas.reduce((s, g) => s + Math.max(0, g.total - (g.saved || 0)), 0);
-  const mensal = metas.reduce((s, g) => s + (g.monthly || 0), 0);
-  const fins = metas.map(g => plano[g.id] && plano[g.id].fim);
+  // Uma meta por vez: o aporte de agora é o da primeira da fila que ainda não terminou.
+  const ativa = [...metas].sort((a, b) => a.prio - b.prio).find(g => (g.saved || 0) < g.total);
+  const mensal = ativa ? ativa.monthly || 0 : 0;
+  const fins = metas.map(g => plano[g.id] && plano[g.id].conclusao);
   const ultimo = fins.length && fins.every(Boolean) ? fins.reduce((a, b) => (b > a ? b : a)) : null;
   document.getElementById('resumo-guardado').textContent = fmtR(guardado);
   document.getElementById('resumo-falta').textContent = fmtR(falta);
@@ -150,7 +157,7 @@ function renderLinhaDoTempo(metas, plano) {
         <span class="timeline-name" title="${escapeHtml(g.title)}">#${g.prio} ${escapeHtml(g.title)}</span>
         <div class="timeline-track">
           <div class="timeline-bar ${vaiAtrasar(g, p) ? 'atrasa' : ''}" style="left:${esquerda}%;width:${largura}%;--cat-color:${cat.color}"
-            title="${escapeHtml(g.title)}: ${mesPorExtenso(p.inicio)} até ${mesPorExtenso(p.fim)}">${p.fim.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })}</div>
+            title="${escapeHtml(g.title)}: ${mesPorExtenso(p.inicio)} até ${mesPorExtenso(p.conclusao)}">${p.conclusao.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })}</div>
         </div>
       </div>`;
   }).join('');
@@ -181,14 +188,19 @@ function confirmDeposit() {
   const antes = g.saved || 0;
   const depois = Math.min(g.total, antes + valor);
   const entrou = depois - antes; // o que passar do total não entra (nem no histórico)
+  if (entrou <= 0) { showToast('Essa meta já está completa.', ''); return; }
   const concluiu = depois >= g.total;
   const marcos = marcosCruzados(antes, depois, g.total);
 
   closeModal('modal-deposit');
   showLoading();
   const ref = metasRef().doc(id);
-  ref.update({ saved: depois })
-    .then(() => ref.collection('contributions').add({ amount: entrou, total: depois, date: FieldValue.serverTimestamp() }))
+  // Saldo e histórico no mesmo batch (entram juntos ou nenhum), e increment em vez de gravar o total:
+  // duas abas depositando ao mesmo tempo somam os dois aportes. Batch também funciona offline.
+  const batch = db.batch();
+  batch.update(ref, { saved: FieldValue.increment(entrou) });
+  batch.set(ref.collection('contributions').doc(), { amount: entrou, total: depois, date: FieldValue.serverTimestamp() });
+  batch.commit()
     .then(() => {
       hideLoading();
       if (concluiu) {
@@ -236,7 +248,7 @@ function lerFormulario(prefix) {
     total: numero('total'),
     saved: numero('saved'),
     monthly: numero('monthly'),
-    prio: parseInt(document.getElementById(`${prefix}-prio`).value) || state.goals.length + 1,
+    prio: parseInt(document.getElementById(`${prefix}-prio`).value) || proximaPrioridade(),
     category: document.getElementById(`${prefix}-category`).value || 'outro',
     specs: getSpecs(`${prefix}-specs`),
     startMonth: document.getElementById(`${prefix}-start-month`).value || '',
@@ -277,7 +289,7 @@ function atualizarDicaAporte(prefix) {
 function openModalNew() {
   ['new-title', 'new-img-url', 'new-img-search-input', 'new-img-final', 'new-total', 'new-saved', 'new-monthly', 'new-start-month', 'new-deadline']
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-  document.getElementById('new-prio').value = state.goals.length + 1;
+  document.getElementById('new-prio').value = proximaPrioridade();
   document.getElementById('new-specs').innerHTML = '<div class="spec-empty">Nenhum detalhe adicionado.</div>';
   document.getElementById('new-img-preview').style.display = 'none';
   document.getElementById('new-img-results').innerHTML = '';
@@ -420,7 +432,8 @@ function detalheHtml(g, previsao, { somenteLeitura = false } = {}) {
   const falta = Math.max(0, g.total - (g.saved || 0));
   const cat = categoryOf(g);
   const img = urlImagemSegura(g.img);
-  const atrasa = vaiAtrasar(g, previsao);
+  // No link público a fila das outras metas não aparece: a previsão seria inventada, então fica de fora.
+  const atrasa = !somenteLeitura && vaiAtrasar(g, previsao);
   const meses = previsao && previsao.meses !== null ? previsao.meses : null;
   const specs = (g.specs || []).length
     ? `<div class="detail-section-title">Detalhes</div>
@@ -446,8 +459,9 @@ function detalheHtml(g, previsao, { somenteLeitura = false } = {}) {
       <div class="detail-stat"><div class="detail-stat-label">Falta</div><div class="detail-stat-val">${fmtR(falta)}</div></div>
       <div class="detail-stat"><div class="detail-stat-label">Por mês</div><div class="detail-stat-val">${fmtR(g.monthly)}</div></div>
       <div class="detail-stat"><div class="detail-stat-label">Prazo</div><div class="detail-stat-val highlight">${meses === null ? '—' : meses + ' meses'}</div></div>
+      ${somenteLeitura ? '' : `
       <div class="detail-stat"><div class="detail-stat-label">Começa em</div><div class="detail-stat-val">${mesPorExtenso(previsao && previsao.inicio)}</div></div>
-      <div class="detail-stat"><div class="detail-stat-label">Fica pronta em</div><div class="detail-stat-val ${atrasa ? 'alerta' : ''}">${mesPorExtenso(previsao && previsao.fim)}</div></div>
+      <div class="detail-stat"><div class="detail-stat-label">Fica pronta em</div><div class="detail-stat-val ${atrasa ? 'alerta' : ''}">${mesPorExtenso(previsao && previsao.conclusao)}</div></div>`}
       ${g.deadline ? `<div class="detail-stat"><div class="detail-stat-label">Data alvo</div><div class="detail-stat-val ${atrasa ? 'alerta' : ''}">${mesPorExtenso(mesDoTexto(g.deadline))}</div></div>` : ''}
     </div>
     ${somenteLeitura ? '' : `
@@ -520,7 +534,7 @@ function renderReordenar() {
       <li class="reorder-item" draggable="true" data-id="${escapeHtml(id)}">
         <span class="reorder-pos">${i + 1}</span>
         <span class="reorder-info"><strong>${escapeHtml(g.title)}</strong>
-          <small class="${atrasa ? 'alerta' : ''}">${p && p.fim ? `${mesPorExtenso(p.inicio)} → ${mesPorExtenso(p.fim)}` : 'sem previsão'}${atrasa ? ' · passa da data alvo' : ''}</small></span>
+          <small class="${atrasa ? 'alerta' : ''}">${p && p.fim ? `${mesPorExtenso(p.inicio)} → ${mesPorExtenso(p.conclusao)}` : 'sem previsão'}${atrasa ? ' · passa da data alvo' : ''}</small></span>
         <span class="reorder-btns">
           <button onclick="moverNaOrdem(${i}, -1)" aria-label="Subir" ${i === 0 ? 'disabled' : ''}>↑</button>
           <button onclick="moverNaOrdem(${i}, 1)" aria-label="Descer" ${i === ordemRascunho.length - 1 ? 'disabled' : ''}>↓</button>
