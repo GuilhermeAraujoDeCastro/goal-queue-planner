@@ -1,10 +1,16 @@
 # Web Metas
 
-![Tela inicial do Web Metas](docs/capa.png)
+![Capa do Web Metas](docs/capa.png)
 
 Painel de metas financeiras em fila de prioridade. Em vez de dividir o dinheiro entre todas as metas ao mesmo tempo, o app assume que elas são pagas uma de cada vez, na ordem que você definir, e calcula em que mês cada uma começa e termina. A interface foi convertida de um design feito no Figma.
 
 Site: https://web-metas.vercel.app
+
+[![CI](https://github.com/GuilhermeAraujoDeCastro/goal-queue-planner/actions/workflows/ci.yml/badge.svg)](https://github.com/GuilhermeAraujoDeCastro/goal-queue-planner/actions/workflows/ci.yml)
+
+| Painel | Detalhe | No celular |
+|---|---|---|
+| ![Painel com as metas na ordem da fila](docs/screenshots/01-home.png) | ![Detalhes de uma meta com o gráfico do valor guardado](docs/screenshots/02-detalhe.png) | ![Painel numa tela de celular](docs/screenshots/03-mobile.png) |
 
 ## O que tem
 
@@ -26,12 +32,12 @@ A busca no Unsplash passa por uma function da Vercel (`api/unsplash-search.js`),
 
 As regras do Firestore (`firestore.rules`) deixam cada conta ler e gravar só as próprias metas e validam os campos de cada meta antes de gravar. Uma meta marcada como pública pode ser aberta pelo link, mas não aparece em listagem.
 
-No build, o esbuild junta os módulos num arquivo só e o javascript-obfuscator embaralha esse arquivo. CSS e HTML saem minificados, e o service worker ganha uma versão nova a cada deploy. Quem abre o F12 no site publicado não vê o código legível.
+No build, o esbuild junta os módulos num arquivo só e o javascript-obfuscator embaralha esse arquivo. CSS e HTML saem minificados, e o service worker ganha uma versão nova a cada deploy. A ofuscação só deixa o código mais difícil de ler e não guarda segredo: quem protege os dados são as regras do Firestore, e a chave do Unsplash fica na function da Vercel.
 
 ## Estrutura
 
 ```
-web-metas/
+goal-queue-planner/
 ├── index.html
 ├── build.js               build de produção (gera dist/)
 ├── vercel.json
@@ -76,6 +82,6 @@ npx firebase-tools login
 npx firebase-tools deploy --only firestore:rules
 ```
 
-## Licença
+## Licença e contato
 
-Código sob a licença MIT (veja o arquivo LICENSE). As bibliotecas de terceiros estão em CREDITS.md.
+Código sob a licença MIT (veja [LICENSE](LICENSE)). As bibliotecas de terceiros estão em [CREDITS.md](CREDITS.md). Feito por Guilherme Araujo de Castro: [portfólio](https://guilhermearaujodecastro.vercel.app) · [LinkedIn](https://www.linkedin.com/in/guilherme-araujo-de-castro) · guilhermeacastro.2006@gmail.com
