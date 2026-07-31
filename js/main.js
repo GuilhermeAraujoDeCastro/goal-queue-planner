@@ -1,12 +1,15 @@
 // Ponto de entrada: liga o login ao painel, abre a visão pública (?meta=uid/id) e registra o PWA.
 
 import { initAuth } from './auth.js';
+import { IS_LOCAL } from './firebase-config.js';
 import { loadDashboard, mostrarMetaPublica } from './goals.js';
 import { showScreen, sincronizarIconeTema } from './ui.js';
 import './images.js';
 import './celebrate.js';
 
 sincronizarIconeTema();
+const localNote = document.getElementById('local-env-note');
+if (localNote) localNote.hidden = !IS_LOCAL;
 
 const metaCompartilhada = new URLSearchParams(location.search).get('meta');
 if (metaCompartilhada && metaCompartilhada.includes('/')) {

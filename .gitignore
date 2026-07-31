@@ -6,4 +6,5 @@ dist/
 
 # Segredos, deploy e logs locais
 .env.*
+!.env.example
 *.log

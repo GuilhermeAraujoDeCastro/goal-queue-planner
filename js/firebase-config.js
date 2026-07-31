@@ -13,8 +13,13 @@ const firebaseConfig = {
   appId: "1:52337039380:web:69345d5af457af7e9c2f01"
 };
 
-firebase.initializeApp(firebaseConfig);
+export const IS_LOCAL = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+firebase.initializeApp(IS_LOCAL ? { apiKey: 'demo-only', projectId: 'demo-auditoria-goals', authDomain: 'localhost' } : firebaseConfig);
 
 export const auth = firebase.auth();
 export const db = firebase.firestore();
 export const FieldValue = firebase.firestore.FieldValue;
+if (IS_LOCAL) {
+  auth.useEmulator('http://127.0.0.1:9099', { disableWarnings: true });
+  db.useEmulator('127.0.0.1', 8080);
+}
