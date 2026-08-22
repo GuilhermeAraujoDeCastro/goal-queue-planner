@@ -1,6 +1,7 @@
 // Gráfico e lista do histórico de aportes de uma meta (subcoleção "contributions").
 
 import { metasRef } from './metas-db.js';
+import { state } from './state.js';
 import { escapeHtml, fmtR } from './planejamento.js';
 
 let evolutionChart = null;
@@ -19,6 +20,7 @@ function cor(nome) {
 }
 
 export async function renderEvolutionChart(goalId) {
+  const uid = state.currentUser?.uid, session = state.session;
   const canvas = document.getElementById('evolution-chart');
   const vazio = document.getElementById('evolution-empty');
   if (!canvas) return;
@@ -27,6 +29,7 @@ export async function renderEvolutionChart(goalId) {
   let snapshot;
   try {
     snapshot = await buscarAportes(goalId);
+    if (uid !== state.currentUser?.uid || session !== state.session) return;
   } catch (err) {
     console.error('Erro ao carregar histórico de aportes:', err);
     canvas.style.display = 'none';
@@ -73,10 +76,12 @@ export async function renderEvolutionChart(goalId) {
 
 // Lista dos aportes, o mais recente primeiro.
 export async function renderHistorico(goalId) {
+  const uid = state.currentUser?.uid, session = state.session;
   const lista = document.getElementById('historico-aportes');
   if (!lista) return;
   try {
     const snapshot = await buscarAportes(goalId);
+    if (uid !== state.currentUser?.uid || session !== state.session) return;
     if (snapshot.empty) {
       lista.innerHTML = '<li>Nenhum aporte registrado ainda.</li>';
       return;

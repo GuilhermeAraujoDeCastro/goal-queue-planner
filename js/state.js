@@ -3,6 +3,9 @@
 export const state = {
   currentUser: null,
   goals: [],
+  allGoals: [],
+  session: 0,
+  monthlyBudget: null,
   carouselIndex: 0,
   unsubscribeGoals: null
 };
