@@ -1,66 +1,89 @@
-# Web de Metas
+# Web Metas
 
-Painel de metas financeiras com sequenciamento por prioridade: em vez de juntar dinheiro para todas as metas ao mesmo tempo, o sistema calcula em que mês cada meta começa, assumindo que elas são financiadas em ordem, uma de cada vez, pela prioridade definida.
+Painel de metas financeiras em fila de prioridade. Em vez de dividir o dinheiro entre todas as metas ao mesmo tempo, o app assume que elas são pagas uma de cada vez, na ordem que você definir, e calcula em que mês cada uma começa e termina. A interface foi convertida de um design feito no Figma.
 
-Site: https://consiga-seus-objetivos.netlify.app
+Site: https://consiga-seus-objetivos.vercel.app
+
+## O que tem
+
+- Cadastro de metas com valor total, quanto já foi guardado, aporte mensal, categoria, prazo e imagem.
+- Cronograma em linha do tempo, com aviso quando uma meta vai passar do prazo.
+- Resumo no topo: total guardado, quanto falta, aporte por mês e quando tudo termina.
+- Reordenar as prioridades arrastando ou pelas setas, com o cronograma recalculado na hora.
+- Depósitos com histórico e gráfico de evolução de cada meta.
+- Confete quando um depósito passa de 25%, 50% e 75% da meta e na conclusão, com o card da meta concluída exportado como imagem.
+- Imagem da meta por link, upload ou busca no Unsplash.
+- Link público só leitura pra compartilhar uma meta.
+- Tema claro e escuro, layout pra celular e instalação como app (PWA).
 
 ## Tecnologias
 
-O front-end é JavaScript puro em módulos ES, sem framework, usando o SDK compat do Firebase (Authentication e Firestore) carregado por tags de script no HTML. Além disso:
+JavaScript puro em módulos ES, sem framework, com o SDK compat do Firebase (Authentication e Firestore). Chart.js desenha o gráfico de evolução e html2canvas gera a imagem da meta concluída.
 
-- Chart.js para o gráfico de evolução do valor guardado em cada meta
-- html2canvas para exportar o card de meta concluída como imagem
-- Uma função serverless da Netlify que busca imagens na API oficial da Unsplash, mantendo a chave de acesso fora do navegador
+A busca no Unsplash passa por uma function da Vercel (`api/unsplash-search.js`), então a chave da API fica no servidor. A function só aceita texto de busca e só devolve imagens do próprio Unsplash.
 
-O build de produção usa esbuild para empacotar os módulos em um único arquivo e javascript-obfuscator para ofuscar esse arquivo antes do deploy.
+As regras do Firestore (`firestore.rules`) deixam cada conta ler e gravar só as próprias metas e validam os campos de cada meta antes de gravar. Uma meta marcada como pública pode ser aberta pelo link, mas não aparece em listagem.
 
-## Estrutura de pastas
+No build, o esbuild junta os módulos num arquivo só e o javascript-obfuscator embaralha esse arquivo. CSS e HTML saem minificados, e o service worker ganha uma versão nova a cada deploy. Quem abre o F12 no site publicado não vê o código legível.
+
+## Estrutura
 
 ```
 web-metas/
 ├── index.html
-├── build.js
+├── build.js               build de produção (gera dist/)
+├── vercel.json
+├── firestore.rules        regras de segurança do banco
+├── firebase.json, .firebaserc
+├── sw.js
+├── manifest.json
+├── api/
+│   └── unsplash-search.js
 ├── css/
-│   └── style.css
 ├── js/
-│   ├── main.js
-│   ├── firebase-config.js
-│   ├── state.js
-│   ├── ui.js
-│   ├── auth.js
-│   ├── goals.js
-│   ├── images.js
-│   ├── celebrate.js
-│   └── chart.js
-├── netlify/
-│   └── functions/
-│       └── unsplash-search.js
-└── dist/            (gerado pelo build, não versionado)
+│   ├── main.js            ponto de entrada
+│   ├── auth.js            login, cadastro e recuperação de senha
+│   ├── goals.js           painel, cronograma e meta pública
+│   ├── planejamento.js    contas do cronograma (as que têm teste)
+│   ├── metas-db.js        acesso ao Firestore
+│   ├── chart.js, celebrate.js, images.js, ui.js, state.js
+│   └── firebase-config.js
+├── testes/                testes unitários e o Firebase falso
+├── e2e/                   testes no navegador
+└── scripts/servidor-dev.js
 ```
 
-## Build local
+## Rodando na sua máquina
 
-```
+```bash
 npm install
-npm run build
+npm run dev
 ```
 
-O comando gera a pasta `dist/` com o HTML, o CSS e o JavaScript já empacotado e ofuscado. É essa pasta que a Netlify publica, conforme configurado em `netlify.toml`.
+A busca no Unsplash só funciona na Vercel ou com `vercel dev`, porque depende da function.
 
-## Configuração necessária
+## Testes
 
-A busca de imagens usava o endpoint `source.unsplash.com`, que a própria Unsplash desativou. A busca agora passa pela API oficial, o que exige uma variável de ambiente no painel da Netlify:
+```bash
+npm test
+npm run build
+npx playwright install chromium
+npm run test:e2e
+```
 
-- `UNSPLASH_ACCESS_KEY`: um Access Key gerado em unsplash.com/developers, criando uma aplicação nova. O plano gratuito (Demo) libera 50 requisições por hora, o suficiente para uso pessoal.
+Os testes unitários cobrem as contas do cronograma, a leitura de valores em reais, a function do Unsplash e checagens das regras do Firestore. Os testes no navegador rodam o build de produção com um Firebase falso: criação de metas com resumo e linha do tempo, prioridade repetida recusada, título com HTML exibido como texto, depósito que passa do total e reordenação pelas setas. O GitHub Actions roda tudo a cada push.
 
-Sem essa variável configurada, a busca de imagens mostra um aviso e as outras formas de adicionar imagem (URL direta ou upload) continuam funcionando normalmente.
+## Deploy na Vercel
 
-## Sobre o sequenciamento por prioridade
+Cadastre `UNSPLASH_ACCESS_KEY` nas variáveis de ambiente do projeto (a chave vem de unsplash.com/developers). Depois do primeiro deploy, adicione o domínio da Vercel em Firebase Console, Authentication, Settings, Domínios autorizados.
 
-Cada meta tem uma prioridade numérica (1 é a primeira a ser financiada). A meta de prioridade 1 usa o mês de início configurado nela mesma; a de prioridade 2 começa no mês em que a 1 termina, considerando o aporte mensal e o valor que falta, e assim sucessivamente.
+Pra publicar as regras do Firestore:
 
-Esse cálculo depende de cada prioridade ser única. Por isso o app recusa salvar uma meta com uma prioridade já usada por outra meta ativa, tanto ao criar quanto ao editar.
+```bash
+npx firebase-tools login
+npx firebase-tools deploy --only firestore:rules
+```
 
 ## Licença
 
-Consulte o arquivo LICENSE. As bibliotecas de terceiros usadas neste projeto estão listadas em CREDITS.md.
+Veja o arquivo LICENSE. As bibliotecas de terceiros estão em CREDITS.md.
