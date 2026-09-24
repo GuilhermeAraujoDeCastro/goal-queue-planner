@@ -1,4 +1,4 @@
-// Autenticação: login, cadastro, recuperação de senha e logout.
+// Login, cadastro, recuperação de senha e saída (Firebase Auth).
 
 import { auth } from './firebase-config.js';
 import { state } from './state.js';
@@ -15,7 +15,7 @@ function firebaseErrorMsg(code) {
     'auth/network-request-failed': 'Erro de conexão.',
     'auth/invalid-credential': 'E-mail ou senha incorretos.'
   };
-  return msgs[code] || 'Erro: ' + code;
+  return msgs[code] || 'Não deu certo agora. Tente de novo.';
 }
 
 async function doLogin() {
@@ -47,6 +47,9 @@ async function doRegister() {
     const cred = await auth.createUserWithEmailAndPassword(email, pass);
     await cred.user.updateProfile({ displayName: name });
     state.currentUser = cred.user;
+    // O painel já abriu antes do nome ser salvo: atualiza a saudação.
+    const saudacao = document.getElementById('user-name-display');
+    if (saudacao) saudacao.textContent = name;
     hideLoading();
     showToast('Conta criada com sucesso!', 'success');
   } catch (err) {
