@@ -1,39 +1,15 @@
-// Build de produção: empacota js/main.js (e tudo que ele importa) num
-// único arquivo com o esbuild e depois ofusca esse arquivo com o
-// javascript-obfuscator, pra quem abrir o F12 no site publicado não ver
-// o código fonte legível.
-//
-// Diferente do Treine Bem, aqui o Firebase é carregado por tags <script>
-// comuns no index.html (SDK "compat", não modular), então não existe
-// nenhum import de URL pra preservar: o esbuild empacota os módulos
-// normalmente e o bundle resultante já assume que o objeto global
-// "firebase" existe antes dele rodar.
+// Build de produção (roda na Vercel): empacota e ofusca o JS, minifica CSS e HTML
+// e versiona o cache do service worker. O código legível fica só no repositório.
+// O Firebase vem por <script> no HTML (SDK compat), então o bundle usa o "firebase" global.
 
 import { build } from 'esbuild';
 import JavaScriptObfuscator from 'javascript-obfuscator';
+import { minify as minifyHtml } from 'html-minifier-terser';
 import { readFileSync, writeFileSync, mkdirSync, cpSync, rmSync, existsSync } from 'fs';
 
 const DIST = 'dist';
 
-if (existsSync(DIST)) rmSync(DIST, { recursive: true, force: true });
-mkdirSync(DIST, { recursive: true });
-mkdirSync(`${DIST}/js`, { recursive: true });
-
-cpSync('index.html', `${DIST}/index.html`);
-cpSync('css', `${DIST}/css`, { recursive: true });
-if (existsSync('assets')) cpSync('assets', `${DIST}/assets`, { recursive: true });
-
-await build({
-  entryPoints: ['js/main.js'],
-  bundle: true,
-  format: 'esm',
-  target: 'es2019',
-  outfile: `${DIST}/js/main.js`,
-  minify: false
-});
-
-const bundled = readFileSync(`${DIST}/js/main.js`, 'utf8');
-const obfuscated = JavaScriptObfuscator.obfuscate(bundled, {
+const OFUSCACAO = {
   compact: true,
   controlFlowFlattening: true,
   controlFlowFlatteningThreshold: 0.6,
@@ -44,9 +20,37 @@ const obfuscated = JavaScriptObfuscator.obfuscate(bundled, {
   stringArrayThreshold: 0.75,
   identifierNamesGenerator: 'hexadecimal',
   selfDefending: false,
-  disableConsoleOutput: false
-}).getObfuscatedCode();
+  disableConsoleOutput: false,
+};
 
-writeFileSync(`${DIST}/js/main.js`, obfuscated);
+if (existsSync(DIST)) rmSync(DIST, { recursive: true, force: true });
+mkdirSync(`${DIST}/js`, { recursive: true });
+mkdirSync(`${DIST}/css`, { recursive: true });
 
-console.log('Build concluído em dist/, com o JavaScript empacotado e ofuscado.');
+cpSync('assets', `${DIST}/assets`, { recursive: true });
+cpSync('manifest.json', `${DIST}/manifest.json`);
+
+// JS: um arquivo só, empacotado e ofuscado.
+const js = await build({ entryPoints: ['js/main.js'], bundle: true, format: 'esm', target: 'es2019', write: false, legalComments: 'none' });
+writeFileSync(`${DIST}/js/main.js`, JavaScriptObfuscator.obfuscate(js.outputFiles[0].text, OFUSCACAO).getObfuscatedCode());
+
+// CSS minificado.
+const css = await build({ entryPoints: ['css/style.css'], bundle: true, minify: true, write: false, legalComments: 'none' });
+writeFileSync(`${DIST}/css/style.css`, css.outputFiles[0].text);
+
+// Service worker com id novo a cada deploy (o cache antigo é apagado sozinho).
+const buildId = (process.env.VERCEL_GIT_COMMIT_SHA || Date.now().toString(36)).slice(0, 10);
+const sw = readFileSync('sw.js', 'utf8').replaceAll('__BUILD_ID__', buildId);
+writeFileSync(`${DIST}/sw.js`, JavaScriptObfuscator.obfuscate(sw, { compact: true, stringArray: true }).getObfuscatedCode());
+
+// HTML sem comentários nem espaços (scripts e estilos inline também minificados).
+const html = await minifyHtml(readFileSync('index.html', 'utf8'), {
+  collapseWhitespace: true,
+  conservativeCollapse: true,
+  removeComments: true,
+  minifyJS: true,
+  minifyCSS: true,
+});
+writeFileSync(`${DIST}/index.html`, html);
+
+console.log('Build pronto em dist/: JS ofuscado, CSS e HTML minificados.');
