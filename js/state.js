@@ -23,12 +23,9 @@ export function categoryOf(goal) {
   return CATEGORIES[goal && goal.category] || CATEGORIES.outro;
 }
 
-// Formatação fica em planejamento.js (testada); reexportada aqui por compatibilidade.
-export { fmtR } from './planejamento.js';
-
 // Chave do cache local é por usuário, pra não misturar dados se mais de
 // uma conta já usou o mesmo navegador.
-export function cacheKey(uid) {
+function cacheKey(uid) {
   return 'metas_cache_' + uid;
 }
 
