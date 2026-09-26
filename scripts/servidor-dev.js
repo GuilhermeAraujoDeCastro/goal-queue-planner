@@ -1,9 +1,10 @@
-// Servidor estático mínimo pra rodar o site local e os testes E2E (não faz parte do deploy).
+// Servidor estático pra rodar o site local (não faz parte do deploy).
+// npm run dev serve o código-fonte; npm run preview serve o build de dist/.
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, sep } from 'node:path';
 
-const RAIZ = join(import.meta.dirname, '..', process.env.PASTA || '');
+const RAIZ = join(import.meta.dirname, '..', process.argv[2] || '');
 const PORTA = Number(process.env.PORT) || 5311;
 const TIPOS = {
     '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
