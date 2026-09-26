@@ -1,10 +1,12 @@
 // Metas: painel, criar/editar/excluir, depósito, reordenação, linha do tempo e compartilhamento.
 
 import { db, FieldValue } from './firebase-config.js';
-import { apagarMetaComHistorico, metasRef } from './metas-db.js';
+import { blockedBy, budgetTimeline } from './finance-domain.js';
+import { renderPlanning, clearPlanning } from './planning-ui.js';
+import { apagarMetaComHistorico, metasRef, depositarMeta, restaurarMeta } from './metas-db.js';
 import { state, categoryOf, CATEGORIES, saveGoalsCache, loadGoalsCache } from './state.js';
 import { showLoading, hideLoading, showToast, showScreen, openModal, closeModal } from './ui.js';
-import { celebrateGoal, soltarConfete } from './celebrate.js';
+import { celebrateGoal, soltarConfete, clearCelebrationSession } from './celebrate.js';
 import { switchImgTab, getImgFinal } from './images.js';
 import { renderEvolutionChart, renderHistorico } from './chart.js';
 import {
@@ -15,29 +17,54 @@ import {
 // =============================================
 //  PAINEL
 // =============================================
-export function loadDashboard() {
-  hideLoading();
-  showScreen('screen-dashboard');
-  const nome = state.currentUser.displayName || state.currentUser.email.split('@')[0];
-  document.getElementById('user-name-display').textContent = nome;
-
-  // Mostra o cache local na hora, antes do Firestore responder.
-  const cache = loadGoalsCache(state.currentUser.uid);
-  if (cache && cache.length > 0) {
-    state.goals = cache;
-    renderGoals();
+export function clearGoalSession() {
+  clearCelebrationSession();
+  state.session++;
+  if (state.unsubscribeGoals) state.unsubscribeGoals();
+  state.unsubscribeGoals = null;
+  state.goals = []; state.allGoals = []; state.monthlyBudget = null;
+  for (const id of ['goals-grid', 'archived-goals', 'priority-order', 'detail-content']) {
+    const el = document.getElementById(id); if (el) el.replaceChildren();
   }
-
+  document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('open'));
+  clearPlanning();
+}
+export function loadDashboard() {
+  const uid = state.currentUser.uid, session = state.session;
+  hideLoading(); showScreen('screen-dashboard');
+  document.getElementById('user-name-display').textContent = state.currentUser.displayName || state.currentUser.email.split('@')[0];
+  state.goals = []; state.allGoals = []; renderGoals();
+  const cached = loadGoalsCache(uid);
+  if (Array.isArray(cached)) acceptGoals(cached);
   if (state.unsubscribeGoals) state.unsubscribeGoals();
   state.unsubscribeGoals = metasRef().orderBy('prio', 'asc').onSnapshot(snapshot => {
-    state.goals = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-    saveGoalsCache(state.currentUser.uid, state.goals);
-    renderGoals();
-  }, err => {
-    console.error('Firestore error:', err);
-    showToast(state.goals.length ? 'Sem conexão. Mostrando os últimos dados salvos.' : 'Erro ao carregar metas', 'error');
-    if (!state.goals.length) renderGoals();
+    if (session !== state.session || state.currentUser?.uid !== uid) return;
+    const goals = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    saveGoalsCache(uid, goals); acceptGoals(goals);
+  }, () => {
+    if (session !== state.session || state.currentUser?.uid !== uid) return;
+    showToast(state.allGoals.length ? 'Sem conexão. Mostrando cache desta conta. Aportes exigem conexão.' : 'Não foi possível carregar as metas desta conta.', 'error');
   });
+}
+function acceptGoals(goals) {
+  state.allGoals = goals;
+  state.goals = goals.filter(g => g.status !== 'archived');
+  renderGoals(); renderArchived(); renderPlanning(renderGoals);
+}
+function renderArchived() {
+  const box = document.getElementById('archived-goals'); if (!box) return;
+  const archived = state.allGoals.filter(g => g.status === 'archived');
+  box.innerHTML = archived.length ? archived.map(g => `<article class="summary-card"><strong>${escapeHtml(g.title)}</strong><span>${fmtR(g.saved)} de ${fmtR(g.total)}</span><div><button class="btn-secondary" data-archive-detail="${escapeHtml(g.id)}">Consultar histórico</button> <button class="btn-ghost" data-restore="${escapeHtml(g.id)}">Restaurar</button></div></article>`).join('') : '<p>Nenhuma meta arquivada.</p>';
+  box.querySelectorAll('[data-restore]').forEach(btn => btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    try { await restaurarMeta(btn.dataset.restore); showToast('Meta restaurada ao fim da fila.', 'success'); }
+    catch { showToast('Não foi possível restaurar. Confira a conexão.', 'error'); btn.disabled = false; }
+  }));
+  box.querySelectorAll('[data-archive-detail]').forEach(btn => btn.addEventListener('click', () => {
+    const g = state.allGoals.find(g => g.id === btn.dataset.archiveDetail);
+    document.getElementById('detail-content').innerHTML = `<h2>${escapeHtml(g.title)}</h2><p>Arquivada. Os aportes foram preservados.</p><ul id="historico-aportes" class="historico-list"></ul><canvas id="evolution-chart"></canvas><p id="evolution-empty"></p>`;
+    openModal('modal-detail'); renderHistorico(g.id); renderEvolutionChart(g.id);
+  }));
 }
 
 // Prioridade repetida quebraria a fila (duas metas começariam no mesmo mês).
@@ -50,7 +77,7 @@ function validatePrioUnique(prio, excludeId) {
 // =============================================
 function renderGoals() {
   const ordenadas = [...state.goals].sort((a, b) => a.prio - b.prio);
-  const plano = cronograma(ordenadas);
+  const plano = state.monthlyBudget == null ? cronograma(ordenadas) : budgetTimeline(ordenadas, state.monthlyBudget);
   const qtd = ordenadas.length;
   document.getElementById('meta-count-display').textContent =
     qtd === 0 ? 'Nenhuma meta ainda' : `${qtd} meta${qtd > 1 ? 's' : ''} em andamento`;
@@ -178,43 +205,31 @@ function openDeposit(id) {
   setTimeout(() => input.focus(), 50);
 }
 
-function confirmDeposit() {
+let depositBusy = false;
+async function confirmDeposit() {
+  if (depositBusy || !state.currentUser) return;
   const id = document.getElementById('deposit-id').value;
   const g = state.goals.find(x => x.id === id);
-  if (!g) return;
   const valor = parseValorBR(document.getElementById('deposit-amount').value);
-  if (isNaN(valor) || valor <= 0) { showToast('Valor inválido', 'error'); return; }
-
-  const antes = g.saved || 0;
-  const depois = Math.min(g.total, antes + valor);
-  const entrou = depois - antes; // o que passar do total não entra (nem no histórico)
-  if (entrou <= 0) { showToast('Essa meta já está completa.', ''); return; }
-  const concluiu = depois >= g.total;
-  const marcos = marcosCruzados(antes, depois, g.total);
-
-  closeModal('modal-deposit');
-  showLoading();
-  const ref = metasRef().doc(id);
-  // Saldo e histórico no mesmo batch (entram juntos ou nenhum), e increment em vez de gravar o total:
-  // duas abas depositando ao mesmo tempo somam os dois aportes. Batch também funciona offline.
-  const batch = db.batch();
-  batch.update(ref, { saved: FieldValue.increment(entrou) });
-  batch.set(ref.collection('contributions').doc(), { amount: entrou, total: depois, date: FieldValue.serverTimestamp() });
-  batch.commit()
-    .then(() => {
-      hideLoading();
-      if (concluiu) {
-        celebrateGoal(id, g.title);
-      } else {
-        showToast(`+${fmtR(entrou)} guardado! Total: ${fmtR(depois)}`, 'success');
-        if (marcos.length) {
-          soltarConfete(40);
-          showToast(`🎉 ${marcos[marcos.length - 1]}% de "${g.title}"!`, 'success');
-        }
-      }
-      if (entrou < valor) showToast(`A meta só precisava de ${fmtR(entrou)}; o resto não foi somado.`, '');
-    })
-    .catch(err => { hideLoading(); showToast('Erro: ' + err.message, 'error'); });
+  if (!g || !Number.isFinite(valor) || valor <= 0) { showToast('Valor inválido.', 'error'); return; }
+  if (navigator.onLine === false) { showToast('Conecte-se para confirmar o aporte. Nenhum valor foi gravado.', 'error'); return; }
+  const uid = state.currentUser.uid, session = state.session;
+  depositBusy = true; showLoading();
+  try {
+    const result = await depositarMeta(id, valor, crypto.randomUUID());
+    if (uid !== state.currentUser?.uid || session !== state.session) return;
+    closeModal('modal-deposit');
+    if (!result.amount) showToast('Essa meta já está completa.', 'info');
+    else if (result.completed) celebrateGoal(id, g.title);
+    else {
+      showToast(`+${fmtR(result.amount)} guardado! Total: ${fmtR(result.total)}`, 'success');
+      const milestones = marcosCruzados(result.before, result.total, g.total);
+      if (milestones.length) { soltarConfete(40); showToast(`${milestones.at(-1)}% de ${g.title}!`, 'success'); }
+    }
+    if (result.amount < valor) showToast(`Entrou somente o que faltava: ${fmtR(result.amount)}.`, 'info');
+  } catch (err) {
+    if (uid === state.currentUser?.uid) showToast('Aporte não confirmado. Confira a conexão e tente novamente. ' + err.message, 'error');
+  } finally { depositBusy = false; hideLoading(); }
 }
 
 // =============================================
@@ -271,15 +286,20 @@ function atualizarDicaAporte(prefix) {
   if (!dados.deadline || !dados.total) { dica.hidden = true; return; }
   const idAtual = prefix === 'edit' ? document.getElementById('edit-id').value : 'nova';
   const simuladas = [...state.goals.filter(g => g.id !== idAtual), { ...dados, id: idAtual }];
-  const previsao = cronograma(simuladas)[idAtual];
+  const previsao = (state.monthlyBudget == null ? cronograma(simuladas) : budgetTimeline(simuladas, state.monthlyBudget))[idAtual];
   const necessario = aporteNecessario(dados, previsao && previsao.inicio);
+  const efetivo = state.monthlyBudget == null ? dados.monthly : Math.min(dados.monthly, state.monthlyBudget);
   dica.hidden = false;
-  if (necessario === Infinity) {
+  const bloqueadora = blockedBy(simuladas, idAtual);
+  if (necessario === null) {
+    dica.className = 'aporte-hint alerta';
+    dica.textContent = bloqueadora ? `Fila bloqueada pela meta ${bloqueadora.title}, sem aporte mensal. Ajuste essa meta primeiro.` : 'Sem previsão de início. Revise a fila antes de definir o prazo.';
+  } else if (necessario === Infinity) {
     dica.className = 'aporte-hint alerta';
     dica.textContent = 'Pela fila de prioridades, essa meta só começa depois dessa data. Aumente a prioridade ou mude a data.';
-  } else if (necessario !== null && necessario > dados.monthly) {
+  } else if (necessario !== null && (necessario > efetivo || vaiAtrasar(dados, previsao))) {
     dica.className = 'aporte-hint alerta';
-    dica.textContent = `Com ${fmtR(dados.monthly)} por mês não dá tempo. Precisa de pelo menos ${fmtR(necessario)} por mês.`;
+    dica.textContent = `Com ${fmtR(efetivo)} por mês disponíveis e a fila atual não dá tempo. Mínimo necessário: ${fmtR(necessario)} por mês. Confira também o orçamento global.`;
   } else {
     dica.className = 'aporte-hint';
     dica.textContent = `Dá tempo! Mínimo necessário: ${fmtR(necessario || 0)} por mês.`;
@@ -481,7 +501,7 @@ function detalheHtml(g, previsao, { somenteLeitura = false } = {}) {
 function openDetail(id) {
   const g = state.goals.find(x => x.id === id);
   if (!g) return;
-  const previsao = cronograma(state.goals)[id];
+  const previsao = (state.monthlyBudget == null ? cronograma(state.goals) : budgetTimeline(state.goals, state.monthlyBudget))[id];
   document.getElementById('detail-content').innerHTML = detalheHtml(g, previsao);
   openModal('modal-detail');
   renderEvolutionChart(id);

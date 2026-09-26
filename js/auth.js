@@ -2,6 +2,7 @@
 
 import { auth } from './firebase-config.js';
 import { state } from './state.js';
+import { clearGoalSession } from './goals.js';
 import { showLoading, hideLoading, showToast, showScreen } from './ui.js';
 
 function firebaseErrorMsg(code) {
@@ -75,6 +76,7 @@ async function doForgot() {
 }
 
 async function doLogout() {
+  clearGoalSession();
   if (state.unsubscribeGoals) { state.unsubscribeGoals(); state.unsubscribeGoals = null; }
   await auth.signOut();
 }
@@ -83,6 +85,7 @@ async function doLogout() {
 // que este módulo dependa diretamente de goals.js.
 export function initAuth(onAuthenticated, onSignedOut) {
   auth.onAuthStateChanged(user => {
+    clearGoalSession();
     if (user) {
       state.currentUser = user;
       onAuthenticated(user);

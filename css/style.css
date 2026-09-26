@@ -296,3 +296,19 @@ body:has(#screen-public.active) .theme-toggle.floating { display: none; }
   .timeline-row { grid-template-columns: 1fr; gap: 4px; }
   .summary-card strong { font-size: 17px; }
 }
+
+/* Controles novos seguem cores, tipografia e botões existentes. */
+.table-scroll { max-width:100%; overflow-x:auto; }
+.table-scroll table { width:100%; border-collapse:collapse; text-align:left; }
+.table-scroll th,.table-scroll td { padding:.65rem; border-bottom:1px solid var(--border,#7775); vertical-align:top; }
+#planning-tools details,#backup-preview fieldset,.exercise-row,#routine-form fieldset { padding:1rem; margin:1rem 0; border:1px solid var(--border,#7775); border-radius:12px; }
+#planning-tools summary { cursor:pointer; font-size:1.1rem; }
+#planning-tools label,#routine-form label,#custom-workout-form>label,.exercise-row>label { display:block; margin-top:.8rem; }
+#planning-tools input,#planning-tools select,#routine-form input[type=date],#custom-workout-form input { max-width:100%; box-sizing:border-box; margin:.35rem 0 1rem; }
+#planning-tools button,#workouts-card button { margin:.35rem .35rem .35rem 0; }
+.workout-numbers { display:flex; flex-wrap:wrap; gap:.75rem; }
+.workout-numbers label { flex:1; min-width:90px; }
+.workout-numbers input { width:100%; }
+.custom-workout-list { display:flex; flex-wrap:wrap; gap:.5rem; }
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible { outline:3px solid var(--accent,var(--primary,#57a5ff)); outline-offset:3px; }
+@media(max-width:600px) { #planning-tools fieldset,.exercise-row { padding:.65rem; } .table-scroll { font-size:.85rem; } }

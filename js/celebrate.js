@@ -2,11 +2,17 @@
 
 import { state } from './state.js';
 import { showToast } from './ui.js';
-import { apagarMetaComHistorico } from './metas-db.js';
+import { arquivarMeta } from './metas-db.js';
 import { escapeHtml, fmtR } from './planejamento.js';
 
 let pendingGoalId = null;
 let pendingGoalTitle = null;
+let pendingOwner = null;
+export function clearCelebrationSession() {
+  pendingGoalId = null; pendingGoalTitle = null; pendingOwner = null;
+  document.getElementById('celebrate-overlay')?.remove();
+  document.querySelectorAll('.confete').forEach(node => node.remove());
+}
 
 // Pedacinhos de papel caindo (CSS puro, somem sozinhos).
 export function soltarConfete(quantidade = 60) {
@@ -23,8 +29,10 @@ export function soltarConfete(quantidade = 60) {
 }
 
 export function celebrateGoal(id, title) {
+  clearCelebrationSession();
   pendingGoalId = id;
   pendingGoalTitle = title;
+  pendingOwner = state.currentUser?.uid;
   soltarConfete();
   const overlay = document.createElement('div');
   overlay.className = 'celebrate-overlay';
@@ -47,6 +55,7 @@ export function celebrateGoal(id, title) {
 }
 
 async function exportCelebrationCard() {
+  const session = state.session;
   const card = document.getElementById('celebrate-card');
   if (!card || typeof html2canvas !== 'function') {
     showToast('Não foi possível gerar a imagem agora', 'error');
@@ -54,6 +63,7 @@ async function exportCelebrationCard() {
   }
   try {
     const canvas = await html2canvas(card, { backgroundColor: null, scale: 2 });
+    if (session !== state.session) return;
     baixar(canvas.toDataURL('image/png'), 'meta-concluida.png');
   } catch (err) {
     console.error('Erro ao exportar card de conquista:', err);
@@ -71,6 +81,7 @@ function baixar(url, nome) {
 // Vídeo curto (4s, formato Stories 9:16) da barra enchendo até o progresso atual.
 // Desenha num canvas e grava com MediaRecorder: sem biblioteca e sem servidor.
 async function exportarVideoMeta(id) {
+  const session = state.session;
   const meta = state.goals.find(g => g.id === id);
   if (!meta) return;
   if (typeof MediaRecorder === 'undefined' || !HTMLCanvasElement.prototype.captureStream) {
@@ -94,6 +105,7 @@ async function exportarVideoMeta(id) {
   const inicio = performance.now();
   await new Promise(resolve => {
     function quadro(agora) {
+      if (session !== state.session) { resolve(); return; }
       const t = Math.min(1, (agora - inicio) / duracao);
       desenharQuadro(ctx, meta, pctFinal * easeOut(Math.min(1, t * 1.4)));
       if (t < 1) requestAnimationFrame(quadro); else resolve();
@@ -102,6 +114,7 @@ async function exportarVideoMeta(id) {
   });
   gravador.stop();
   await terminou;
+  if (session !== state.session) return;
   baixar(URL.createObjectURL(new Blob(pedacos, { type: 'video/webm' })), 'progresso-meta.webm');
   showToast('Vídeo pronto!', 'success');
 }
@@ -154,17 +167,19 @@ function quebrarTexto(ctx, texto, x, y, largura, alturaLinha) {
 async function archiveCelebratedGoal() {
   const id = pendingGoalId;
   const title = pendingGoalTitle;
-  if (!id) return;
+  if (!id || pendingOwner !== state.currentUser?.uid) return;
+  const owner = pendingOwner, session = state.session;
   const overlay = document.getElementById('celebrate-overlay');
   if (overlay) {
     overlay.classList.add('celebrate-fade-out');
     setTimeout(() => overlay.remove(), 500);
   }
   try {
-    await apagarMetaComHistorico(id);
+    await arquivarMeta(id);
+    if (session !== state.session || owner !== state.currentUser?.uid) return;
     showToast('Meta "' + title + '" concluída e arquivada!', 'success');
   } catch (err) {
-    showToast('Erro ao arquivar: ' + err.message, 'error');
+    if (session === state.session && owner === state.currentUser?.uid) showToast('Erro ao arquivar: ' + err.message, 'error');
   }
   pendingGoalId = null;
   pendingGoalTitle = null;
