@@ -78,4 +78,4 @@ npx firebase-tools deploy --only firestore:rules
 
 ## Licença
 
-Veja o arquivo LICENSE. As bibliotecas de terceiros estão em CREDITS.md.
+Código sob a licença MIT (veja o arquivo LICENSE). As bibliotecas de terceiros estão em CREDITS.md.

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Metas financeiras em fila de prioridade, com Firebase Auth e Firestore; build empacotado com esbuild e ofuscado pro deploy na Vercel.",
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "MIT",
   "author": "Guilherme Araujo de Castro",
   "scripts": {
     "build": "node build.js",
