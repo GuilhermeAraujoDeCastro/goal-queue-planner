@@ -1,38 +1,42 @@
+// Modelo local revisado: users/{uid} guarda orçamento opcional; goals/{id}
+// guarda meta ativa/arquivada; contributions/{id} guarda aporte monetário e data.
+// UID é o caminho proprietário. Ausência de status em dados antigos significa ativa.
 rules_version = '2';
 service cloud.firestore {
-  match /databases/{database}/documents {
-    function dono(userId) {
-      return request.auth != null && request.auth.uid == userId;
-    }
-
-    // Formato mínimo de uma meta (evita gravar lixo ou textos gigantes).
-    function metaValida(m) {
-      return m.title is string && m.title.size() > 0 && m.title.size() <= 120
-        && m.total is number && m.total > 0
-        && m.saved is number && m.saved >= 0 && m.saved <= m.total
-        && m.get('monthly', 0) is number && m.get('monthly', 0) >= 0
-        && m.get('prio', 1) is int && m.get('prio', 1) >= 1
-        && m.get('publico', false) is bool
-        && m.get('specs', []) is list && m.get('specs', []).size() <= 30
-        && m.get('img', '') is string && m.get('img', '').size() <= 900000;
-    }
-
-    match /users/{userId} {
-      allow read, write: if dono(userId);
-
-      match /goals/{goalId} {
-        // Meta marcada como "compartilhar": qualquer um lê SÓ ela, pelo link (sem listar as outras).
-        allow get: if dono(userId) || resource.data.publico == true;
-        allow list, delete: if dono(userId);
-        allow create, update: if dono(userId) && metaValida(request.resource.data);
-
-        // Histórico de aportes: sempre privado.
-        match /contributions/{aporteId} {
-          allow read, delete: if dono(userId);
-          allow create: if dono(userId) && request.resource.data.amount is number && request.resource.data.amount > 0
-            && request.resource.data.total is number;
-        }
-      }
-    }
+ match /databases/{database}/documents {
+  function owner(uid) { return request.auth != null && request.auth.uid == uid; }
+  function validUser(m) { return m.get('monthlyBudget', 0) is number && m.get('monthlyBudget', 0) >= 0 && m.get('monthlyBudget', 0) <= 10000000000; }
+  function validGoal(m) {
+   return m.keys().hasOnly(['title','total','saved','monthly','prio','publico','specs','img','category','startMonth','deadline','status','archivedAt','createdAt'])
+    && m.title is string && m.title.size() > 0 && m.title.size() <= 120
+    && m.total is number && m.total > 0 && m.total <= 10000000000
+    && m.saved is number && m.saved >= 0 && m.saved <= m.total
+    && m.get('monthly',0) is number && m.get('monthly',0) >= 0 && m.get('monthly',0) <= 10000000000
+    && m.prio is int && m.prio >= 1 && m.prio <= 1000000
+    && m.get('publico',false) is bool && m.get('status','active') in ['active','archived']
+    && m.get('img','') is string && m.get('img','').size() <= 900000
+    && m.get('category','outro') is string && m.get('category','outro').size() <= 30
+    && m.get('startMonth','') is string && (m.get('startMonth','') == '' || m.startMonth.matches('[1-9][0-9]{3}-(0[1-9]|1[0-2])'))
+    && m.get('deadline','') is string && (m.get('deadline','') == '' || m.deadline.matches('[1-9][0-9]{3}-(0[1-9]|1[0-2])'))
+    && (m.get('archivedAt',null) == null || (m.archivedAt is string && m.archivedAt.size() <= 35))
+    && (!('createdAt' in m) || m.createdAt is timestamp || (m.createdAt is string && m.createdAt.size() <= 35))
+    && validSpecs(m.get('specs',[]));
   }
+  // Estrutura de detalhes herdada: preservada para compatibilidade com metas antigas.
+  function validSpecs(s) { return s is list && s.size() <= 30; }
+  function validContribution(m) { return m.keys().hasOnly(['amount','total','date']) && m.amount is number && m.amount > 0 && m.amount <= 10000000000 && m.total is number && m.total >= 0 && m.total <= 10000000000 && m.date is timestamp; }
+  match /users/{uid} {
+   allow read, delete: if owner(uid);
+   allow create, update: if owner(uid) && validUser(request.resource.data);
+   match /goals/{goal} {
+    allow get: if owner(uid) || resource.data.get('publico',false) == true;
+    allow list, delete: if owner(uid);
+    allow create, update: if owner(uid) && validGoal(request.resource.data);
+    match /contributions/{contribution} {
+     allow read, delete: if owner(uid);
+     allow create, update: if owner(uid) && validContribution(request.resource.data) && getAfter(/databases/$(database)/documents/users/$(uid)/goals/$(goal)).data.title is string;
+    }
+   }
+  }
+ }
 }
