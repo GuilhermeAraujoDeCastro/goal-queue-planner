@@ -3,3 +3,7 @@ dist/
 .vercel/
 .env
 .DS_Store
+
+# Segredos, deploy e logs locais
+.env.*
+*.log
