@@ -9,7 +9,10 @@
   "scripts": {
     "build": "node build.js",
     "dev": "node scripts/servidor-dev.js",
-    "preview": "node scripts/servidor-dev.js dist"
+    "preview": "node scripts/servidor-dev.js dist",
+    "test": "node --test tests/*.test.mjs",
+    "emulators": "npx --yes firebase-tools@14.22.0 emulators:start --only auth,firestore --project demo-auditoria-goals",
+    "test:emulator": "node tests/emulator.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.24.0",

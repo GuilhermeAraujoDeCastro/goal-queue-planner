@@ -14,5 +14,6 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      - run: npm test
       - run: npm run build
       - run: for f in dist/js/*.js dist/sw.js api/*.js; do node --check "$f"; done
